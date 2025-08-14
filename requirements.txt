@@ -1,0 +1,31 @@
+# AI Model Integration Requirements
+# Pinned versions for compatibility with Python 3.9-3.12 and Mac hardware
+
+# Core AI/ML Dependencies
+vllm==0.2.7                    # High-performance LLM inference server
+torch==2.1.2                   # PyTorch with Metal Performance Shaders support
+transformers==4.36.2           # Hugging Face transformers library
+huggingface-hub==0.19.4        # Model downloading and caching
+
+# FastAPI and Web Server
+fastapi==0.104.1               # Web framework for API endpoints
+uvicorn[standard]==0.24.0      # ASGI server with performance optimizations
+pydantic==2.5.2                # Data validation and serialization
+
+# MCP Protocol Support
+mcp==0.1.0                     # Model Context Protocol implementation
+
+# System and Utilities
+psutil==5.9.6                  # System resource monitoring
+aiofiles==23.2.1               # Async file operations
+python-multipart==0.0.6       # File upload support
+python-dotenv==1.0.0           # Environment variable management
+
+# Development and Testing (optional)
+pytest==7.4.3                 # Testing framework
+pytest-asyncio==0.21.1        # Async testing support
+httpx==0.25.2                  # HTTP client for testing
+
+# Logging and Monitoring
+structlog==23.2.0              # Structured logging
+rich==13.7.0                   # Rich terminal output

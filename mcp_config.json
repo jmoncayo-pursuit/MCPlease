@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "offline-mcp-server": {
+            "command": "python",
+            "args": [
+                "src/mcp_server.py"
+            ],
+            "cwd": "/Users/jmoncayopursuit.org/MCPlease"
+        }
+    }
+}
