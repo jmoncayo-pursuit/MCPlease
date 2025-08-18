@@ -1,0 +1,77 @@
+# ARM64-optimized Dockerfile for Raspberry Pi deployment
+FROM python:3.11-slim-bookworm as builder
+
+# Install system dependencies for ARM64
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    pkg-config \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock* ./
+
+# Install dependencies with uv (ARM64 optimized)
+RUN uv sync --frozen --no-dev --no-cache
+
+# Production stage for ARM64
+FROM python:3.11-slim-bookworm as production
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r mcplease && useradd -r -g mcplease mcplease
+
+# Set working directory
+WORKDIR /app
+
+# Copy uv from builder
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Copy virtual environment from builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Copy application code
+COPY src/ ./src/
+COPY pyproject.toml ./
+
+# Create data directory
+RUN mkdir -p /app/data && chown -R mcplease:mcplease /app
+
+# Switch to non-root user
+USER mcplease
+
+# Set environment variables for ARM64
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app/src"
+ENV MCP_DATA_DIR="/app/data"
+ENV MCP_LOG_LEVEL="INFO"
+ENV MCP_ARM64_OPTIMIZED="true"
+ENV MCP_MEMORY_LIMIT="4GB"
+
+# ARM64 specific optimizations
+ENV OMP_NUM_THREADS="4"
+ENV PYTORCH_ENABLE_MPS_FALLBACK="1"
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=15s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose ports
+EXPOSE 8000 8001
+
+# Default command with ARM64 optimizations
+CMD ["python", "-m", "mcplease_mcp.main", "--arm64-optimized"]

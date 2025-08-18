@@ -1,0 +1,113 @@
+# Docker Compose configuration for MCPlease MCP Server
+version: '3.8'
+
+services:
+  # Main MCP server
+  mcplease-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: mcplease-mcp-server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # SSE transport
+      - "8001:8001"  # WebSocket transport
+    volumes:
+      - mcp_data:/app/data
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+    environment:
+      - MCP_LOG_LEVEL=INFO
+      - MCP_DATA_DIR=/app/data
+      - MCP_CONFIG_FILE=/app/config/server.yaml
+      - MCP_ENABLE_TLS=false
+      - MCP_REQUIRE_AUTH=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mcp_network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4.0'
+        reservations:
+          memory: 4G
+          cpus: '2.0'
+
+  # Development server with hot reload
+  mcplease-mcp-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: mcplease-mcp-dev
+    restart: "no"
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    volumes:
+      - .:/app
+      - mcp_data_dev:/app/data
+    environment:
+      - MCP_LOG_LEVEL=DEBUG
+      - MCP_DATA_DIR=/app/data
+      - MCP_ENABLE_TLS=false
+      - MCP_REQUIRE_AUTH=false
+      - PYTHONPATH=/app/src
+    command: ["uv", "run", "python", "-m", "mcplease_mcp.main", "--reload"]
+    networks:
+      - mcp_network
+    profiles:
+      - dev
+
+  # Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: mcplease-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - mcplease-mcp
+    networks:
+      - mcp_network
+    profiles:
+      - production
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: mcplease-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - mcp_network
+    profiles:
+      - cache
+
+volumes:
+  mcp_data:
+    driver: local
+  mcp_data_dev:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  mcp_network:
+    driver: bridge

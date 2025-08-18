@@ -1,0 +1,19 @@
+{
+  "session_id": "anon_672d9a3e_1755555079112",
+  "user_id": null,
+  "workspace_path": null,
+  "active_files": [],
+  "conversation_history": [
+    {
+      "role": "assistant",
+      "content": "Tool executed successfully",
+      "timestamp": "2025-08-18T18:11:19.113801",
+      "metadata": {
+        "response_type": "success"
+      }
+    }
+  ],
+  "metadata": {},
+  "created_at": "2025-08-18T18:11:19.112294",
+  "last_accessed": "2025-08-18T18:11:19.113344"
+}

@@ -1,0 +1,27 @@
+{
+  "session_id": "anon_0a85e456_1755556143135",
+  "user_id": null,
+  "workspace_path": null,
+  "active_files": [],
+  "conversation_history": [
+    {
+      "role": "assistant",
+      "content": "Tool executed successfully",
+      "timestamp": "2025-08-18T18:29:03.136032",
+      "metadata": {
+        "response_type": "success"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": "Tool executed successfully",
+      "timestamp": "2025-08-18T18:29:03.136599",
+      "metadata": {
+        "response_type": "success"
+      }
+    }
+  ],
+  "metadata": {},
+  "created_at": "2025-08-18T18:29:03.135095",
+  "last_accessed": "2025-08-18T18:29:03.136414"
+}

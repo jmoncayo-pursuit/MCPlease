@@ -1,0 +1,32 @@
+# Multi-architecture build configuration for MCPlease MCP Server
+version: '3.8'
+
+services:
+  # Multi-arch build service
+  mcplease-mcp-build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: mcplease/mcp-server:latest
+    container_name: mcplease-mcp-build
+    profiles:
+      - build
+
+  # ARM64 specific build (for Raspberry Pi)
+  mcplease-mcp-arm64:
+    build:
+      context: .
+      dockerfile: Dockerfile.arm64
+      target: production
+      platforms:
+        - linux/arm64
+    image: mcplease/mcp-server:arm64
+    container_name: mcplease-mcp-arm64
+    profiles:
+      - arm64
