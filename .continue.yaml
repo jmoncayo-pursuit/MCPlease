@@ -1,0 +1,22 @@
+name: MCPlease Local
+version: 1.0.0
+schema: v1
+models:
+  - name: MCPlease OSS-20B Local
+    provider: openai
+    model: oss-20b-local
+    apiBase: http://localhost:8000/v1
+    apiKey: not-needed
+    roles:
+      - chat
+      - edit
+      - apply
+      - autocomplete
+context:
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: terminal
+  - provider: problems
+  - provider: folder
+  - provider: codebase

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import uvicorn
 
-app = FastAPI(title="MCPleasant API")
+app = FastAPI(title="MCPlease API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 mcp_process = None
@@ -48,7 +48,7 @@ def send_mcp_request(method: str, params: Dict[str, Any] = None) -> Dict[str, An
 
 @app.get("/v1/models")
 async def list_models():
-    return {"object": "list", "data": [{"id": "gpt-3.5-turbo", "object": "model", "created": 1677610602, "owned_by": "mcpleasant"}]}
+    return {"object": "list", "data": [{"id": "gpt-3.5-turbo", "object": "model", "created": 1677610602, "owned_by": "mcplease"}]}
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
@@ -84,7 +84,7 @@ async def chat_completions(request: ChatCompletionRequest):
             response_text = content[0].get("text", response_text)
     
     return {
-        "id": f"mcpleasant-{hash(user_message) % 10000}",
+        "id": f"mcplease-{hash(user_message) % 10000}",
         "object": "chat.completion",
         "created": int(time.time()),
         "model": request.model,

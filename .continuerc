@@ -1,0 +1,11 @@
+{
+  "models": [
+    {
+      "name": "MCPlease Local",
+      "provider": "openai",
+      "model": "oss-20b-local",
+      "apiBase": "http://localhost:8000/v1",
+      "apiKey": "not-needed"
+    }
+  ]
+}

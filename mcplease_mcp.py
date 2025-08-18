@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MCPleasant MCP - ONE command for GitHub Copilot integration
+MCPlease MCP - ONE command for GitHub Copilot integration
 
 Uses VSCode's native MCP support with GitHub Copilot.
 No extensions needed. Just works.
@@ -16,7 +16,7 @@ from pathlib import Path
 def print_banner():
     print("""
 ╔══════════════════════════════════════════════════════════════╗
-║                    MCPleasant MCP                           ║
+║                    MCPlease MCP                           ║
 ║                                                              ║
 ║  🎯 ONE command. Works with GitHub Copilot directly.       ║
 ║  ⚡ No extensions, no config, just works                   ║
@@ -26,7 +26,7 @@ def print_banner():
 def create_mcp_server():
     """Create the MCP server that works with Copilot."""
     server_code = '''#!/usr/bin/env python3
-"""MCPleasant MCP Server for GitHub Copilot integration."""'''
+"""MCPlease MCP Server for GitHub Copilot integration."""'''
 
 import asyncio
 import json
@@ -38,7 +38,7 @@ from typing import Dict, Any, List
 logging.basicConfig(level=logging.ERROR, stream=sys.stderr)
 logger = logging.getLogger(__name__)
 
-class MCPleasantMCPServer:
+class MCPleaseMCPServer:
     """MCP server that provides AI coding tools to GitHub Copilot."""
     
     def __init__(self):
@@ -451,10 +451,10 @@ def create_vscode_mcp_config():
     
     mcp_config = {
         "servers": {
-            "mcpleasant": {
+            "mcplease": {
                 "type": "stdio",
                 "command": "python",
-                "args": ["mcpleasant_server.py"]
+                "args": ["mcplease_server.py"]
             }
         }
     }
@@ -468,14 +468,14 @@ def create_vscode_mcp_config():
 
 def start_mcp_server():
     """Start the MCP server."""
-    print("🚀 Starting MCPleasant MCP server...")
+    print("🚀 Starting MCPlease MCP server...")
     
     # Create the server file
-    with open("mcpleasant_server.py", "w") as f:
+    with open("mcplease_server.py", "w") as f:
         f.write(create_mcp_server())
     
     print("✅ MCP server created")
-    return "mcpleasant_server.py"
+    return "mcplease_server.py"
 
 def open_vscode():
     """Open VSCode in the current directory."""
@@ -494,7 +494,7 @@ def main():
     """The ONE command that sets up MCP with GitHub Copilot."""
     print_banner()
     
-    print("🎯 Setting up MCPleasant for GitHub Copilot...")
+    print("🎯 Setting up MCPlease for GitHub Copilot...")
     print("   This will:")
     print("   • Create MCP server for AI coding tools")
     print("   • Configure VSCode to use the MCP server")

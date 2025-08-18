@@ -2,7 +2,7 @@
 """
 Local AI Client with MCP Integration
 
-A simple AI client that uses MCPleasant MCP tools to provide coding assistance.
+A simple AI client that uses MCPlease MCP tools to provide coding assistance.
 This simulates how a real AI assistant would use your MCP server.
 """
 
@@ -23,11 +23,11 @@ class LocalAIClient:
         self.conversation_history = []
     
     async def start_mcp_server(self):
-        """Start the MCPleasant MCP server."""
+        """Start the MCPlease MCP server."""
         # Look for MCP server files
         server_candidates = [
-            "mcpleasant_mcp.py",
-            "mcpleasant_mcp_fixed.py", 
+            "mcplease_mcp.py",
+            "mcplease_mcp_fixed.py", 
             "src/mcp_server.py"
         ]
         
@@ -253,20 +253,20 @@ class LocalAIClient:
                     "code": intent["code"],
                     "language": intent["language"]
                 })
-                return f"**Code Completion:**\n\n```{intent['language']}\n{intent['code']}\n{response}\n```\n\n*✨ Generated using MCPleasant MCP tool*"
+                return f"**Code Completion:**\n\n```{intent['language']}\n{intent['code']}\n{response}\n```\n\n*✨ Generated using MCPlease MCP tool*"
             
             elif intent["tool"] == "explain_code":
                 response = await self.call_mcp_tool("explain_code", {
                     "code": intent["code"]
                 })
-                return f"**Code Explanation:**\n\n{response}\n\n*✨ Generated using MCPleasant MCP tool*"
+                return f"**Code Explanation:**\n\n{response}\n\n*✨ Generated using MCPlease MCP tool*"
             
             elif intent["tool"] == "debug_code":
                 response = await self.call_mcp_tool("debug_code", {
                     "code": intent["code"],
                     "error": intent["error"]
                 })
-                return f"**Debugging Help:**\n\n{response}\n\n*✨ Generated using MCPleasant MCP tool*"
+                return f"**Debugging Help:**\n\n{response}\n\n*✨ Generated using MCPlease MCP tool*"
         
         else:
             # Handle general queries
@@ -277,7 +277,7 @@ class LocalAIClient:
         user_lower = user_input.lower()
         
         if any(greeting in user_lower for greeting in ['hello', 'hi', 'hey']):
-            return """👋 Hello! I'm your Local AI Assistant with MCPleasant MCP integration!
+            return """👋 Hello! I'm your Local AI Assistant with MCPlease MCP integration!
 
 I can help you with:
 • **Code Completion** - "Complete this function: def fibonacci(n):"
@@ -300,7 +300,7 @@ Try asking me to complete, explain, or debug some code! 🚀"""
 • "Explain this code: def quicksort(arr): return sorted(arr)"
 • "Debug this error: def divide(a,b): return a/b Error: ZeroDivisionError"
 
-**MCP Integration Status:** ✅ Connected with MCPleasant tools"""
+**MCP Integration Status:** ✅ Connected with MCPlease tools"""
         
         elif 'tools' in user_lower or 'mcp' in user_lower:
             tools_list = "\n".join([f"• **{tool['name']}**: {tool.get('description', 'No description')}" for tool in self.tools])
@@ -308,7 +308,7 @@ Try asking me to complete, explain, or debug some code! 🚀"""
 
 {tools_list}
 
-*These tools are provided by your MCPleasant MCP server and enhance my coding assistance capabilities.*"""
+*These tools are provided by your MCPlease MCP server and enhance my coding assistance capabilities.*"""
         
         else:
             return f"""I understand you said: "{user_input}"
@@ -332,7 +332,7 @@ async def interactive_session():
     """Run interactive AI session."""
     print("""
 ╔══════════════════════════════════════════════════════════════╗
-║              Local AI with MCPleasant MCP Tools             ║
+║              Local AI with MCPlease MCP Tools             ║
 ║                                                              ║
 ║  🤖 Your personal coding assistant using MCP integration   ║
 ║  💬 Chat naturally - I'll use MCP tools when needed        ║

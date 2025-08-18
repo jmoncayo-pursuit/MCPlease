@@ -25,7 +25,7 @@ class SimpleMCPServer:
                 "result": {
                     "protocolVersion": "2024-11-05",
                     "capabilities": {"tools": {}},
-                    "serverInfo": {"name": "mcpleasant", "version": "1.0.0"}
+                    "serverInfo": {"name": "mcplease", "version": "1.0.0"}
                 }
             }
         elif method == "tools/list":

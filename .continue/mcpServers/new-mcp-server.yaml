@@ -1,0 +1,9 @@
+name: MCPlease Local
+version: 1.0.0
+schema: v1
+mcpServers:
+  - name: MCPlease Local
+    command: python
+    args:
+      - mcplease_http_server.py
+    env: {}

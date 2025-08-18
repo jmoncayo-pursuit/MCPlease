@@ -2,7 +2,7 @@
 """
 MCP Integration Tester
 
-A comprehensive tool to test MCPleasant MCP server integration.
+A comprehensive tool to test MCPlease MCP server integration.
 This provides multiple ways to verify MCP tools are working correctly.
 """
 
@@ -29,11 +29,11 @@ class MCPTester:
         self.test_results = []
     
     async def start_mcp_server(self):
-        """Start the MCPleasant MCP server."""
+        """Start the MCPlease MCP server."""
         # Look for MCP server files
         server_candidates = [
-            "mcpleasant_mcp.py",
-            "mcpleasant_mcp_fixed.py", 
+            "mcplease_mcp.py",
+            "mcplease_mcp_fixed.py", 
             "src/mcp_server.py",
             "src/simple_mcp_server.py"
         ]

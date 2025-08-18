@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-MCPleasant Copilot Integration Verifier
+MCPlease Copilot Integration Verifier
 
-This script verifies that MCPleasant is properly integrated with GitHub Copilot
+This script verifies that MCPlease is properly integrated with GitHub Copilot
 and provides step-by-step troubleshooting.
 """
 
@@ -16,9 +16,9 @@ from pathlib import Path
 def print_banner():
     print("""
 ╔══════════════════════════════════════════════════════════════╗
-║              MCPleasant Copilot Verification                ║
+║              MCPlease Copilot Verification                ║
 ║                                                              ║
-║  🔍 Checking if MCPleasant works with GitHub Copilot       ║
+║  🔍 Checking if MCPlease works with GitHub Copilot       ║
 ╚══════════════════════════════════════════════════════════════╝
 """)
 
@@ -77,12 +77,12 @@ def check_mcp_files():
     print("\n🔍 Checking MCP files...")
     
     # Check MCP server file
-    server_file = Path("mcpleasant_server.py")
+    server_file = Path("mcplease_server.py")
     if server_file.exists():
         print("✅ MCP server file exists")
     else:
         print("❌ MCP server file missing")
-        print("   Run: python mcpleasant_mcp_fixed.py")
+        print("   Run: python mcplease_mcp_fixed.py")
         return False
     
     # Check VSCode MCP config
@@ -95,7 +95,7 @@ def check_mcp_files():
             with open(config_file, 'r') as f:
                 config = json.load(f)
             
-            if "servers" in config and "mcpleasant" in config["servers"]:
+            if "servers" in config and "mcplease" in config["servers"]:
                 print("✅ MCP config is valid")
                 return True
             else:
@@ -106,14 +106,14 @@ def check_mcp_files():
             return False
     else:
         print("❌ VSCode MCP config missing")
-        print("   Run: python mcpleasant_mcp_fixed.py")
+        print("   Run: python mcplease_mcp_fixed.py")
         return False
 
 def test_mcp_server():
     """Test if MCP server responds correctly."""
     print("\n🔍 Testing MCP server...")
     
-    server_file = Path("mcpleasant_server.py")
+    server_file = Path("mcplease_server.py")
     if not server_file.exists():
         print("❌ MCP server file not found")
         return False
@@ -193,10 +193,10 @@ def check_mcp_in_vscode():
     print("   1. Open VSCode in this directory")
     print("   2. Press Ctrl+Shift+P (Cmd+Shift+P on Mac)")
     print("   3. Type: 'MCP: List Servers'")
-    print("   4. You should see 'mcpleasant' in the list")
+    print("   4. You should see 'mcplease' in the list")
     print("   5. If it shows 'Running' status, integration works!")
     
-    response = input("\n❓ Do you see 'mcpleasant' server in the MCP list? (y/n): ").lower().strip()
+    response = input("\n❓ Do you see 'mcplease' server in the MCP list? (y/n): ").lower().strip()
     
     if response == 'y':
         print("✅ MCP integration is working")
@@ -222,7 +222,7 @@ def test_copilot_agent_mode():
     response = input("\n❓ Did Copilot mention using 'complete_code' tool? (y/n): ").lower().strip()
     
     if response == 'y':
-        print("🎉 SUCCESS! MCPleasant is working with GitHub Copilot!")
+        print("🎉 SUCCESS! MCPlease is working with GitHub Copilot!")
         return True
     else:
         print("❌ Tools not being used by Copilot")
@@ -239,18 +239,18 @@ def provide_debugging_steps():
     
     print("1. **Check MCP Server Status:**")
     print("   • Command Palette → 'MCP: List Servers'")
-    print("   • Should show 'mcpleasant' with 'Running' status")
+    print("   • Should show 'mcplease' with 'Running' status")
     print("")
     
     print("2. **Check MCP Server Output:**")
     print("   • Command Palette → 'MCP: List Servers'")
-    print("   • Select 'mcpleasant' → 'Show Output'")
+    print("   • Select 'mcplease' → 'Show Output'")
     print("   • Look for errors in the log")
     print("")
     
     print("3. **Restart MCP Server:**")
     print("   • Command Palette → 'MCP: List Servers'")
-    print("   • Select 'mcpleasant' → 'Restart'")
+    print("   • Select 'mcplease' → 'Restart'")
     print("")
     
     print("4. **Check Agent Mode:**")
@@ -261,14 +261,14 @@ def provide_debugging_steps():
     
     print("5. **Force Tool Usage:**")
     print("   • In Agent mode, type: '#complete_code'")
-    print("   • This directly references the MCPleasant tool")
+    print("   • This directly references the MCPlease tool")
     print("")
 
 def main():
     """Run complete verification."""
     print_banner()
     
-    print("🎯 This script will verify MCPleasant works with GitHub Copilot")
+    print("🎯 This script will verify MCPlease works with GitHub Copilot")
     print("   We'll check each component step by step")
     print("")
     
@@ -304,9 +304,9 @@ def main():
         print("╔══════════════════════════════════════════════════════════════╗")
         print("║                🎉 VERIFICATION COMPLETE! 🎉                ║")
         print("║                                                              ║")
-        print("║  MCPleasant is working with GitHub Copilot!                ║")
+        print("║  MCPlease is working with GitHub Copilot!                ║")
         print("║                                                              ║")
-        print("║  You can now use MCPleasant tools in Copilot Agent mode    ║")
+        print("║  You can now use MCPlease tools in Copilot Agent mode    ║")
         print("╚══════════════════════════════════════════════════════════════╝")
     else:
         print("╔══════════════════════════════════════════════════════════════╗")
