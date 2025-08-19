@@ -66,29 +66,31 @@ class TestAITools:
         assert "expected_behavior" in tool.inputSchema["properties"]
         assert "actual_behavior" in tool.inputSchema["properties"]
 
-    def test_code_completion_tool_execution(self):
+    @pytest.mark.asyncio
+    async def test_code_completion_tool_execution(self):
         """Test code completion tool execution."""
-        result = code_completion_tool(
+        result = await code_completion_tool(
             code="def hello_world():",
             language="python",
             cursor_position=17,
             max_completions=3
         )
-        
+    
         assert isinstance(result, dict)
         assert "content" in result
         assert len(result["content"]) == 1
         assert result["content"][0]["type"] == "text"
         assert "python" in result["content"][0]["text"].lower()
 
-    def test_code_explanation_tool_execution(self):
+    @pytest.mark.asyncio
+    async def test_code_explanation_tool_execution(self):
         """Test code explanation tool execution."""
-        result = code_explanation_tool(
+        result = await code_explanation_tool(
             code="print('Hello, World!')",
             language="python",
             detail_level="detailed"
         )
-        
+    
         assert isinstance(result, dict)
         assert "content" in result
         assert len(result["content"]) == 1
@@ -96,9 +98,10 @@ class TestAITools:
         assert "python" in result["content"][0]["text"].lower()
         assert "detailed" in result["content"][0]["text"].lower()
 
-    def test_debug_assistance_tool_execution(self):
+    @pytest.mark.asyncio
+    async def test_debug_assistance_tool_execution(self):
         """Test debug assistance tool execution."""
-        result = debug_assistance_tool(
+        result = await debug_assistance_tool(
             code="x = 1 / 0",
             language="python",
             error_message="ZeroDivisionError: division by zero",
@@ -115,9 +118,10 @@ class TestAITools:
         assert "zerodivisionerror" in text.lower()
         assert "should handle division by zero" in text.lower()
 
-    def test_code_completion_tool_minimal_args(self):
+    @pytest.mark.asyncio
+    async def test_code_completion_tool_minimal_args(self):
         """Test code completion tool with minimal arguments."""
-        result = code_completion_tool(
+        result = await code_completion_tool(
             code="def test():",
             language="python"
         )
@@ -126,9 +130,10 @@ class TestAITools:
         assert "content" in result
         assert result["content"][0]["type"] == "text"
 
-    def test_code_explanation_tool_with_focus(self):
+    @pytest.mark.asyncio
+    async def test_code_explanation_tool_with_focus(self):
         """Test code explanation tool with focus parameter."""
-        result = code_explanation_tool(
+        result = await code_explanation_tool(
             code="sorted(items, key=lambda x: x.value)",
             language="python",
             detail_level="comprehensive",
@@ -140,9 +145,10 @@ class TestAITools:
         text = result["content"][0]["text"]
         assert "comprehensive" in text.lower()
 
-    def test_debug_assistance_tool_minimal_args(self):
+    @pytest.mark.asyncio
+    async def test_debug_assistance_tool_minimal_args(self):
         """Test debug assistance tool with minimal arguments."""
-        result = debug_assistance_tool(
+        result = await debug_assistance_tool(
             code="broken_function()",
             language="python"
         )

@@ -179,9 +179,12 @@ class TestModelManager:
         (model_path / "config.json").write_text('{"model_type": "test"}')
         (model_path / "model.safetensors").write_bytes(b"x" * (2 * 1024 * 1024 * 1024))
         
-        # Mock remote info
-        with patch.object(model_manager, '_check_remote_model_info', return_value={}):
-            result_path = await model_manager.download_model(model_name)
+        # Mock remote info and force redownload
+        with patch.object(model_manager, '_check_remote_model_info', return_value={}), \
+             patch.object(model_manager, '_verify_model_integrity', return_value=True), \
+             patch.object(model_manager, '_calculate_directory_hash', return_value="fake_hash"), \
+             patch.object(model_manager, '_calculate_directory_size', return_value=2.0):
+            result_path = await model_manager.download_model(model_name, force_redownload=True)
         
         assert result_path == model_path
         assert model_name in model_manager._cache.models

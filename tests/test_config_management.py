@@ -8,7 +8,6 @@ from unittest.mock import patch, Mock
 import pytest
 
 from src.mcplease_mcp.config.manager import ConfigManager, MCPConfig, HardwareInfo
-from src.mcplease_mcp.config.hardware import HardwareConfig, get_hardware_config
 from src.mcplease_mcp.config.installer import InstallerConfig, InstallerConfigManager
 
 

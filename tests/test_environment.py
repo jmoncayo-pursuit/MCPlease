@@ -37,10 +37,10 @@ class TestEnvironmentManager(unittest.TestCase):
     
     def test_check_python_version_unsupported(self):
         """Test Python version checking with unsupported versions."""
-        with patch('sys.version_info', (3, 13, 0)):
+        with patch('sys.version_info', (3, 8, 0)):
             is_valid, message = self.env_manager.check_python_version()
             self.assertFalse(is_valid)
-            self.assertIn("3.13", message)
+            self.assertIn("3.8", message)
             self.assertIn("not supported", message)
     
     def test_validate_environment_valid(self):
@@ -51,7 +51,7 @@ class TestEnvironmentManager(unittest.TestCase):
     
     def test_validate_environment_invalid(self):
         """Test environment validation with invalid Python version."""
-        with patch('sys.version_info', (3, 13, 0)):
+        with patch('sys.version_info', (3, 8, 0)):
             result = self.env_manager.validate_environment()
             self.assertFalse(result)
     
@@ -120,7 +120,7 @@ class TestEnvironmentValidator(unittest.TestCase):
     
     def test_validate_all_with_unsupported_python(self):
         """Test validation with unsupported Python version."""
-        with patch('sys.version_info', (3, 13, 0)):
+        with patch('sys.version_info', (3, 8, 0)):
             is_valid, issues, warnings = self.validator.validate_all()
             
             # Should be invalid due to Python version

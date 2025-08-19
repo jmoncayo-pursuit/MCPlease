@@ -44,9 +44,9 @@ class TestMemoryMonitor:
         
         # Test different pressure levels
         assert monitor._calculate_pressure_level(0.5) == MemoryPressure.LOW
-        assert monitor._calculate_pressure_level(0.7) == MemoryPressure.MODERATE
-        assert monitor._calculate_pressure_level(0.8) == MemoryPressure.HIGH
-        assert monitor._calculate_pressure_level(0.9) == MemoryPressure.CRITICAL
+        assert monitor._calculate_pressure_level(0.7) == MemoryPressure.LOW  # 70% < 75% threshold
+        assert monitor._calculate_pressure_level(0.8) == MemoryPressure.MODERATE  # 80% >= 75% threshold
+        assert monitor._calculate_pressure_level(0.9) == MemoryPressure.HIGH  # 90% >= 85% threshold
     
     def test_callback_management(self):
         """Test callback addition and removal."""

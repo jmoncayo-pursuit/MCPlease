@@ -92,6 +92,11 @@ class ValidationError(MCPleaseError):
     pass
 
 
+class PromptError(MCPleaseError):
+    """Raised when prompt operations fail."""
+    pass
+
+
 # Legacy exceptions for backward compatibility
 class ModelDownloadError(AIModelError):
     """Exception raised when model download fails."""

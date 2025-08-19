@@ -16,8 +16,9 @@ from contextlib import asynccontextmanager
 import weakref
 from enum import Enum
 import structlog
+import logging
 
-from ..utils.logging import get_performance_logger
+from src.utils.logging import get_performance_logger
 
 
 class MetricType(Enum):
@@ -148,7 +149,7 @@ class RequestQueue:
                     self.queue.task_done()
                     
             except asyncio.TimeoutError:
-                self.stats["total_failed"] += 1
+                # Don't increment total_failed again since it was already incremented above
                 raise
     
     def get_stats(self) -> Dict[str, Any]:

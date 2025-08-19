@@ -380,10 +380,10 @@ class TestErrorStatistics:
         stats = self.handler.get_error_statistics()
         
         assert stats["total_errors"] == 3
-        assert "AI_MODEL" in stats["category_counts"]
-        assert "NETWORK" in stats["category_counts"]
-        assert stats["category_counts"]["AI_MODEL"] == 2
-        assert stats["category_counts"]["NETWORK"] == 1
+        assert "ai_model" in stats["category_counts"]
+        assert "network" in stats["category_counts"]
+        assert stats["category_counts"]["ai_model"] == 2
+        assert stats["category_counts"]["network"] == 1
         
         # Check severity counts
         assert "medium" in stats["severity_counts"]

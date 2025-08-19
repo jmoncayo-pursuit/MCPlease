@@ -5,13 +5,13 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch, MagicMock, mock_open
 import pytest
 
 # Import the installer
-import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 from install_uv import UVInstaller
 
@@ -524,7 +524,6 @@ def mock_open_multiple_files(files_dict):
     """Helper to mock opening multiple files with different content."""
     def mock_open_func(filename, mode='r', **kwargs):
         if str(filename) in files_dict:
-            from unittest.mock import mock_open
             return mock_open(read_data=files_dict[str(filename)]).return_value
         else:
             raise FileNotFoundError(f"No such file: {filename}")

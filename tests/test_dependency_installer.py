@@ -73,12 +73,19 @@ class TestDependencyInstaller:
     @patch('subprocess.run')
     def test_torch_installation_failure(self, mock_run):
         """Test PyTorch installation failure."""
-        # Mock failed subprocess call
+        # Mock successful pip detection first
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_result.stdout = "pip 23.0.1"
+        mock_run.return_value = mock_result
+        
+        installer = DependencyInstaller()
+        
+        # Now mock failed installation
         mock_run.side_effect = subprocess.CalledProcessError(
             1, 'pip install', stderr="Installation failed"
         )
         
-        installer = DependencyInstaller()
         result = installer.install_torch()
         
         assert result.success is False
@@ -89,16 +96,24 @@ class TestDependencyInstaller:
     @patch('subprocess.run')
     def test_vllm_installation_success(self, mock_run):
         """Test successful vLLM installation."""
-        # Mock successful subprocess call
+        # Mock successful pip detection first
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_result.stdout = "pip 23.0.1"
+        mock_run.return_value = mock_result
+        
+        installer = DependencyInstaller()
+        
+        # Mock successful subprocess call for installation
         mock_result = Mock()
         mock_result.returncode = 0
         mock_result.stdout = "Successfully installed vllm"
         mock_result.stderr = ""
         mock_run.return_value = mock_result
         
-        # Mock package import verification
-        with patch.object(DependencyInstaller, '_verify_package_import', return_value=True):
-            installer = DependencyInstaller()
+        # Mock package import verification and Python compatibility
+        with patch.object(DependencyInstaller, '_verify_package_import', return_value=True), \
+             patch.object(installer, 'check_python_compatibility', return_value=(True, "Python 3.11 supported")):
             result = installer.install_vllm()
         
         assert result.success is True
@@ -108,6 +123,12 @@ class TestDependencyInstaller:
     @patch('subprocess.run')
     def test_vllm_python_incompatibility(self, mock_run):
         """Test vLLM installation with incompatible Python version."""
+        # Mock successful pip detection first
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_result.stdout = "pip 23.0.1"
+        mock_run.return_value = mock_result
+        
         installer = DependencyInstaller()
         
         # Mock incompatible Python version

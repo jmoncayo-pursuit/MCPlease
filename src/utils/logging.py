@@ -128,6 +128,22 @@ class PerformanceLogger:
     def __init__(self, logger: structlog.BoundLogger):
         self.logger = logger
     
+    def info(self, message: str, *args, **kwargs):
+        """Log info message."""
+        self.logger.info(message, *args, **kwargs)
+    
+    def warning(self, message: str, *args, **kwargs):
+        """Log warning message."""
+        self.logger.warning(message, *args, **kwargs)
+    
+    def error(self, message: str, *args, **kwargs):
+        """Log error message."""
+        self.logger.error(message, *args, **kwargs)
+    
+    def debug(self, message: str, *args, **kwargs):
+        """Log debug message."""
+        self.logger.debug(message, *args, **kwargs)
+    
     def request_timing(
         self,
         endpoint: str,

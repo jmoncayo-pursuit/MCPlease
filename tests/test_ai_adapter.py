@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from mcplease_mcp.adapters.ai_adapter import MCPAIAdapter
+from src.mcplease_mcp.adapters.ai_adapter import MCPAIAdapter
 
 
 class TestMCPAIAdapter:

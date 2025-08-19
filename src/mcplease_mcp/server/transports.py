@@ -28,9 +28,9 @@ class MCPTransport(ABC):
         """
         self.name = name
         self.is_running = False
-        self.message_handler: Optional[Callable[[Dict[str, Any], str], Awaitable[Dict[str, Any]]]] = None
+        self.message_handler: Optional[Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]]] = None
     
-    def set_message_handler(self, handler: Callable[[Dict[str, Any], str], Awaitable[Dict[str, Any]]]) -> None:
+    def set_message_handler(self, handler: Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]]]) -> None:
         """Set the message handler for incoming requests.
         
         Args:
@@ -123,6 +123,7 @@ class StdioTransport(MCPTransport):
                 if not line:
                     # EOF reached
                     logger.info("EOF reached on stdin, stopping transport")
+                    self.is_running = False
                     break
                 
                 line = line.strip()
@@ -136,7 +137,7 @@ class StdioTransport(MCPTransport):
                     
                     # Handle message if handler is set
                     if self.message_handler:
-                        response = await self.message_handler(message, "127.0.0.1")  # Stdio is always local
+                        response = await self.message_handler(message)
                         if response:
                             await self.send_message(response)
                     

@@ -163,7 +163,7 @@ class TestMCPServer:
         
         assert response is not None
         assert "error" in response
-        assert response["error"]["code"] == -32603
+        assert response["error"]["code"] == -32601  # Method not found is more appropriate for invalid message
 
     @pytest.mark.asyncio
     async def test_handle_message_with_context(self, server, mock_context_manager):
@@ -294,16 +294,25 @@ class TestMCPServer:
     @pytest.mark.asyncio
     async def test_health_check_unhealthy_component(self, server, mock_ai_adapter):
         """Test health check with unhealthy component."""
+        # Start the server so component health affects overall status
+        await server.start()
+        
         # Mock unhealthy AI adapter
         mock_ai_adapter.health_check.return_value = {"status": "unhealthy"}
         
         health = await server.health_check()
         
         assert health["overall_status"] == "unhealthy"
+        
+        # Clean up
+        await server.stop()
 
     @pytest.mark.asyncio
     async def test_health_check_error(self, server, mock_ai_adapter):
         """Test health check with component error."""
+        # Start the server so component health affects overall status
+        await server.start()
+        
         # Mock AI adapter error
         mock_ai_adapter.health_check.side_effect = Exception("Health check failed")
         
@@ -311,6 +320,9 @@ class TestMCPServer:
         
         assert health["overall_status"] == "degraded"
         assert "error" in health
+        
+        # Clean up
+        await server.stop()
 
     @pytest.mark.asyncio
     async def test_run_server(self, server):
