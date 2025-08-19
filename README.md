@@ -1,174 +1,154 @@
-# MCPlease - Offline AI Coding Assistant
+# MCPlease - Universal MCP Server
 
-🤖 **Powered by OSS-20B** | 🔒 **100% Offline & Private** | 💻 **VSCode Ready** | ⚡ **One-Command Setup**
+🤖 **Powered by OSS-20B** | 🔒 **100% Offline & Private** | 💻 **Universal Transport** | ⚡ **One-Command Setup**
 
-MCPlease is an offline AI coding assistant that runs entirely on your machine. It provides intelligent code completion, explanations, and debugging help using a locally-hosted language model, ensuring your code never leaves your machine.
+MCPlease is a universal MCP (Model Context Protocol) server that works everywhere - in your IDE, with Continue.dev, or directly via CLI. It provides intelligent code completion, explanations, and debugging help using a locally-hosted language model, ensuring your code never leaves your machine.
 
-## 🎯 **The Promise: AI-Native Development, Offline**
+## 🎯 **The Promise: Universal MCP Server, One Command**
 
-**Before MCPlease**: Multiple setup steps, manual configuration, restarting processes
-**With MCPlease**: Download model once, then run `./start.sh` for instant AI coding
+**Before MCPlease**: Multiple setup steps, manual configuration, transport-specific setup
+**With MCPlease**: Run `./start.sh` and it works everywhere - IDE, Continue.dev, CLI, Docker
 
-Built for AI-native builders who want to keep building without cloud dependencies or credit systems.
+Built for developers who want AI coding assistance that works in any environment without cloud dependencies.
 
 ## ✨ Features
 
 - **🔒 Complete Privacy**: All AI processing happens locally - your code never leaves your machine
-- **⚡ Simple Setup**: Download model once, then `./start.sh` for instant AI coding
+- **🚇 Universal Transport**: Works via stdio (IDE) or HTTP (Continue.dev, web clients)
+- **⚡ One-Command Setup**: `./start.sh` auto-detects environment and configures everything
 - **🧠 Professional AI**: Full OSS-20B model for production-quality coding assistance
 - **💻 Cross-Platform**: Works on macOS, Linux, and Windows
-- **🔌 VSCode Ready**: Seamless integration with Continue.dev extension
+- **🔌 IDE Ready**: Seamless integration with Cursor, VS Code, and Continue.dev
 - **🚀 AI-Native**: Built for developers who code with AI
 
 ## 🚀 Quick Start
 
-### Download OSS-20B Model (Required)
+### Prerequisites
+- **Python 3.9+**
+- **15GB+ free disk space** (for OSS-20B model)
 
+### Download OSS-20B Model (Required)
 ```bash
 python download_model.py
 ```
 
 **This is required** - MCPlease needs the OSS-20B model to provide AI coding assistance.
 
-### Start MCPlease
-
+### Start MCPlease (Universal)
 ```bash
 ./start.sh
 ```
 
-### Start Using MCPlease
+**That's it!** The script auto-detects your environment and starts the appropriate transport.
 
-1. **Download the model**: `python download_model.py` (required)
-2. **Start the system**: `./start.sh`
-3. **Wait for VSCode** to open
-4. **Press `Ctrl+I`** in VSCode to open Continue.dev
-5. **Start coding** with AI assistance!
+## 🔌 Transport Options
 
-**Note**: The fallback responses are just for testing - real AI coding assistance requires the full model.
-
-## 📋 System Requirements
-
-### Required
-- **Python 3.9+**
-- **VSCode** with Continue.dev extension
-- **Any available port** (automatically finds one)
-- **15GB+ free disk space** (for OSS-20B model)
-- **Stable internet connection** (for model download)
-- **Patience** (10-30 minutes download time)
-
-### What You Get
-- **Full OSS-20B model** for AI coding assistance
-- **Offline AI coding** - no cloud dependencies
-- **Professional-grade AI responses** for building
-- **Continue.dev integration** in VSCode
-
-## 🔌 VSCode Integration
-
-**Automatic!** No manual configuration needed.
-
-1. **Download the model**: `python download_model.py` (required first)
-2. **Run `./start.sh`** - This configures everything automatically
-3. **VSCode opens** with Continue.dev already configured
-4. **Press `Ctrl+I`** to start using AI assistance
-5. **Start coding** immediately!
-
-The setup script handles all configuration automatically.
-
-## 💡 Usage Examples
-
-### Code Completion
-```python
-def fibonacci(n):
-    # AI will complete this function
+### 1. **IDE Integration (stdio) - Default**
+```bash
+./start.sh
 ```
+- **Works in**: Cursor, VS Code
+- **Protocol**: MCP via stdio
+- **Setup**: Automatic IDE detection and configuration
+- **Use**: Workspace Tools → MCP → MCPlease
 
-### Code Explanation
-Select any code and ask: "What does this function do?"
+### 2. **Continue.dev Integration (HTTP)**
+```bash
+./start.sh --http
+```
+- **Works with**: Continue.dev, web clients, API calls
+- **Protocol**: HTTP REST API
+- **Port**: Auto-detects available port (8000+)
+- **Use**: Continue.dev extension or direct HTTP calls
 
-### Debugging Help
-Paste error messages and get intelligent debugging suggestions.
+### 3. **CLI Direct (stdio)**
+```bash
+python mcplease_mcp_server.py --transport stdio
+```
+- **Works in**: Terminal, scripts, automation
+- **Protocol**: MCP via stdio
+- **Use**: Direct command-line interaction
 
-## 🛠️ Manual Installation
+## 🛠️ Manual Setup (Optional)
 
-If you prefer manual setup:
+If you prefer manual configuration:
 
 ```bash
 # Clone repository
 git clone https://github.com/your-org/mcplease.git
 cd mcplease
 
-# Start server manually
-python mcplease_http_server.py
+# Setup virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Configure VSCode manually
-# (See .vscode/settings.json for configuration)
+# Install dependencies
+pip install -r requirements.txt
+
+# Start server manually
+python mcplease_mcp_server.py --transport stdio  # For IDE
+python mcplease_http_server.py --port 8000      # For HTTP
 ```
+
+## 🔧 IDE Configuration
+
+### Automatic Setup (Recommended)
+```bash
+python scripts/setup_ide.py
+```
+This creates MCP configurations for:
+- **Cursor**: `~/.cursor/mcp.json`
+- **VS Code**: `~/.vscode/mcp.json`  
+- **Continue.dev**: `.continue/config.json`
+
+### Manual Configuration
+For Cursor/VS Code, create `~/.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "MCPlease": {
+      "command": "/path/to/mcplease/.venv/bin/python",
+      "args": ["-u", "mcplease_mcp_server.py"],
+      "cwd": "/path/to/mcplease",
+      "env": {"PYTHONUNBUFFERED": "1"},
+      "enabled": true
+    }
+  }
+}
+```
+
+## 💡 Available Tools
+
+MCPlease provides these MCP tools:
+
+- **`file/read`** - Read file contents for analysis
+- **`file/write`** - Write or modify file content
+- **`file/list`** - List files in directory
+- **`terminal/run`** - Execute terminal commands
+- **`codebase/search`** - Search codebase for patterns
+- **`ai/analyze`** - Analyze code using OSS-20B AI
+- **`ai/build`** - Generate code using OSS-20B AI
+- **`health/check`** - Server health and status
 
 ## 📊 Performance
 
-- **Response Time**: Instant with fallback responses
-- **Memory Usage**: Minimal (fallback mode)
+- **Response Time**: Instant with fallback responses, AI-powered with OSS-20B
+- **Memory Usage**: Minimal (fallback mode), optimized (AI mode)
 - **Setup Time**: ~10 seconds total
-- **Context Length**: Unlimited (fallback mode)
+- **Context Length**: Unlimited (fallback mode), model-dependent (AI mode)
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   VSCode IDE    │◄──►│  HTTP Server     │◄──►│  AI Responses   │
-│  (Continue.dev) │    │  (Port 8000)     │    │  (Fallback)     │
+│   IDE/Client    │◄──►│  MCP Server      │◄──►│  OSS-20B AI    │
+│  (Cursor/VS)    │    │  (Universal)     │    │  (Local)        │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
                               │
                        ┌──────────────────┐
-                       │  VSCode Config   │
-                       │  (Auto-setup)    │
+                       │  Transport Layer │
+                       │  stdio | HTTP    │
                        └──────────────────┘
-```
-
-## 🔧 Advanced Usage
-
-### Model Management
-
-#### Download OSS-20B Model (Required)
-```bash
-python download_model.py
-```
-- Downloads the full model (~13GB)
-- Automatically checks disk space
-- Resumes interrupted downloads
-- **Required for AI coding assistance**
-
-#### Check Model Status
-```bash
-ls -la models/gpt-oss-20b/
-```
-- Verify model files are present
-- Check total size (~13GB)
-
-#### Remove Model (Not Recommended)
-```bash
-rm -rf models/gpt-oss-20b/
-```
-- Frees up ~13GB of disk space
-- **Breaks AI functionality** - only use if you know what you're doing
-
-### Server Configuration
-
-#### Custom Server Port
-```bash
-# The system automatically finds an available port
-# If you need a specific port, set the PORT environment variable:
-PORT=9000 ./start.sh
-```
-
-#### Manual Server Start
-```bash
-python mcplease_http_server.py
-```
-
-#### Custom VSCode Config
-```bash
-# Edit .vscode/settings.json for custom settings
 ```
 
 ## 🧪 Development
@@ -176,22 +156,53 @@ python mcplease_http_server.py
 ### Project Structure
 ```
 mcplease/
-├── start.sh                    # One-command setup script
+├── start.sh                    # Universal startup script
+├── mcplease_mcp_server.py      # MCP server with stdio transport
 ├── mcplease_http_server.py     # HTTP server for Continue.dev
-├── .vscode/settings.json       # VSCode configuration
-├── tests/                      # Test suite
-└── examples/                   # Usage examples
+├── scripts/                    # Setup and utility scripts
+├── tests/                      # Comprehensive test suite
+└── docs/                       # Documentation
 ```
 
 ### Running Tests
 ```bash
+# Test all transports
+python scripts/test_transports.py
+
+# Run comprehensive test suite
+python scripts/run_comprehensive_tests.py
+
+# Run specific test categories
 python -m pytest tests/ -v
 ```
 
-### Test Server
+### Testing Transports
 ```bash
-python test_server.py
+# Test stdio transport
+python mcplease_mcp_server.py --transport stdio
+
+# Test HTTP transport
+python mcplease_http_server.py --port 8000
+
+# Test both transports
+python scripts/test_transports.py
 ```
+
+## 🚀 Production Deployment
+
+### Docker Deployment
+```bash
+# Build and run with Docker Compose
+docker-compose -f docker-compose.production.yml up -d
+
+# Includes HAProxy, monitoring, and health checks
+```
+
+### Monitoring
+- **Prometheus** metrics collection
+- **Grafana** dashboards
+- **Loki** log aggregation
+- **Alertmanager** notifications
 
 ## 🤝 Contributing
 
@@ -210,15 +221,15 @@ This project is licensed under the MIT License.
 
 ### Common Issues
 
-#### Model Download Problems
-- **Slow download**: Normal for 13GB file, be patient
-- **Download interrupted**: Just run `python download_model.py` again - it will resume
-- **Not enough disk space**: Free up at least 15GB before downloading
-- **Network errors**: Check your internet connection and try again
+#### Transport Issues
+- **stdio not working**: Run `python scripts/setup_ide.py` and restart IDE
+- **HTTP not working**: Check if port is available, try `./start.sh --http`
+- **IDE not detecting**: Verify MCP configuration in `~/.cursor/mcp.json`
 
-#### Server Issues
-- **Port conflicts**: Automatically resolved - the system finds an available port
-- **Continue.dev not working**: Restart VSCode after running `./start.sh`
+#### Model Issues
+- **Model not found**: Run `python download_model.py` first
+- **Slow responses**: OSS-20B model loads on first use, subsequent calls are fast
+- **Memory issues**: Model uses ~13GB RAM, ensure sufficient memory
 
 ### Getting Help
 - **Documentation**: Check our documentation files
@@ -227,12 +238,12 @@ This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
-- **Continue.dev** for the excellent VSCode integration
+- **MCP Protocol** for the universal server-client communication
 - **FastAPI** for the high-performance HTTP server
-- **VSCode** for the extensible IDE platform
+- **OSS-20B** for the powerful local AI model
 
 ---
 <div align="center">
-**MCPlease** - Made with ❤️ for developers who want offline AI coding assistance
+**MCPlease** - Made with ❤️ for developers who want universal AI coding assistance
 #ForTheLoveOfCode
 </div>
