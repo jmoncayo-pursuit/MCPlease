@@ -27,16 +27,39 @@ Built for developers who want AI coding assistance that works in any environment
 - **Python 3.9+**
 - **15GB+ free disk space** (for OSS-20B model)
 
-### Option 1: Local Setup (Recommended for Development)
+### 🎯 **Universal Installer (Recommended)**
+
+**One command works on any system:**
+
 ```bash
-# Download model first
+# macOS/Linux
+./install.sh
+
+# Windows
+install.bat
+```
+
+The installer automatically:
+- ✅ **Detects your OS** (macOS, Ubuntu, CentOS, Arch, Windows)
+- ✅ **Finds package manager** (apt, yum, dnf, pacman, brew, chocolatey)
+- ✅ **Installs Python** if needed
+- ✅ **Installs Docker** (optional)
+- ✅ **Creates virtual environment**
+- ✅ **Installs dependencies**
+- ✅ **Downloads OSS-20B model** (optional)
+- ✅ **Sets up IDE configurations**
+- ✅ **Tests everything**
+
+### Option 1: Local Setup (After Installer)
+```bash
+# Download model first (if not done by installer)
 python download_model.py
 
 # One command gets everything working
 ./start.sh
 ```
 
-### Option 2: Docker Setup (Recommended for Production)
+### Option 2: Docker Setup (After Installer)
 ```bash
 # One command starts Docker containers
 ./start-docker.sh
