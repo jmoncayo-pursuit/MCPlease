@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: clean-mcp prune-mcp docker-start docker-prod docker-dev docker-stop docker-logs
+.PHONY: clean-mcp prune-mcp docker-start docker-prod docker-dev docker-stop docker-logs test-installer
 
 clean-mcp:
 	python3 scripts/clean_mcp_contexts.py --all
@@ -23,5 +23,12 @@ docker-stop:
 
 docker-logs:
 	docker-compose logs -f
+
+# Testing commands
+test-installer:
+	python3 scripts/test_installer.py
+
+test-installer-dry-run:
+	./scripts/test_installer_dry_run.sh
 
 
