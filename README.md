@@ -50,61 +50,147 @@ The installer automatically:
 - ✅ **Sets up IDE configurations**
 - ✅ **Tests everything**
 
-### Option 1: Local Setup (After Installer)
-```bash
-# Download model first (if not done by installer)
-python download_model.py
+<details>
+<summary><b>🧪 Test the Installer First (Recommended)</b></summary>
 
-# One command gets everything working
-./start.sh
+Test what the installer would do without installing anything:
+
+```bash
+# Test individual functions
+make test-installer
+
+# Show complete installation plan
+make test-installer-dry-run
 ```
 
-### Option 2: Docker Setup (After Installer)
+</details>
+
+## 🚀 **Getting Started**
+
+<details>
+<summary><b>📋 Choose Your Setup Method</b></summary>
+
+<details>
+<summary><b>🎯 Option 1: Universal Installer (Recommended)</b></summary>
+
+**One command works on any system:**
+
 ```bash
-# One command starts Docker containers
+# macOS/Linux
+./install.sh
+
+# Windows
+install.bat
+```
+
+The installer automatically detects your system and sets up everything.
+
+</details>
+
+<details>
+<summary><b>🐳 Option 2: Docker Setup</b></summary>
+
+**One command starts everything:**
+
+```bash
+# Simple Docker (default)
 ./start-docker.sh
 
-# Or use Makefile
-make docker-start
+# Production Docker Stack
+./start-docker.sh prod
+
+# Development Docker Stack
+./start-docker.sh dev
 ```
 
-**That's it!** Both scripts auto-detect your environment and start the appropriate setup.
+</details>
 
-## 🐳 Docker Options
+<details>
+<summary><b>🛠️ Option 3: Manual Setup</b></summary>
 
-### **Simple Docker (Default)**
+For advanced users who prefer manual configuration:
+
+```bash
+# Setup virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start server manually
+python mcplease_mcp_server.py --transport stdio  # For IDE
+python mcplease_http_server.py --port 8000      # For HTTP
+```
+
+</details>
+
+</details>
+
+## 🐳 **Docker Options**
+
+<details>
+<summary><b>🐳 Choose Your Docker Setup</b></summary>
+
+<details>
+<summary><b>🚀 Simple Docker (Default)</b></summary>
+
+**Perfect for development and testing:**
+
 ```bash
 ./start-docker.sh
 # or
 make docker-start
 ```
+
+**Features:**
 - **Single container** with MCP server
 - **HTTP transport** on port 8000
 - **Health checks** enabled
-- **Perfect for** development and testing
+- **Auto-restart** on failure
 
-### **Production Docker Stack**
+</details>
+
+<details>
+<summary><b>🏭 Production Docker Stack</b></summary>
+
+**Enterprise-grade with monitoring:**
+
 ```bash
 ./start-docker.sh prod
 # or
 make docker-prod
 ```
+
+**Features:**
 - **Load balanced** MCP servers (2x instances)
 - **HAProxy** load balancer
 - **Monitoring stack** (Prometheus, Grafana, Loki)
 - **High availability** with health checks
-- **Perfect for** production deployments
+- **Alerting** via Alertmanager
 
-### **Development Docker Stack**
+</details>
+
+<details>
+<summary><b>🔧 Development Docker Stack</b></summary>
+
+**Team development with hot reload:**
+
 ```bash
 ./start-docker.sh dev
 # or
 make docker-dev
 ```
+
+**Features:**
 - **Hot reload** for development
 - **Nginx** reverse proxy
 - **Redis** caching
-- **Perfect for** team development
+- **Volume mounting** for live code changes
+
+</details>
+
+</details>
 
 ### **Docker Management**
 ```bash
@@ -119,68 +205,90 @@ docker-compose down
 docker-compose logs -f
 ```
 
-## 🔌 Transport Options
+## 🔌 **Transport Options**
 
-### 1. **IDE Integration (stdio) - Default**
+<details>
+<summary><b>🔌 Choose Your Transport</b></summary>
+
+<details>
+<summary><b>💻 IDE Integration (stdio) - Default</b></summary>
+
+**Works in Cursor, VS Code:**
+
 ```bash
 ./start.sh
 ```
-- **Works in**: Cursor, VS Code
+
+**Features:**
 - **Protocol**: MCP via stdio
 - **Setup**: Automatic IDE detection and configuration
 - **Use**: Workspace Tools → MCP → MCPlease
+- **Performance**: Direct communication, no network overhead
 
-### 2. **Continue.dev Integration (HTTP)**
+</details>
+
+<details>
+<summary><b>🌐 Continue.dev Integration (HTTP)</b></summary>
+
+**Works with Continue.dev, web clients:**
+
 ```bash
 ./start.sh --http
 ```
-- **Works with**: Continue.dev, web clients, API calls
+
+**Features:**
 - **Protocol**: HTTP REST API
 - **Port**: Auto-detects available port (8000+)
 - **Use**: Continue.dev extension or direct HTTP calls
+- **Access**: From any device on your network
 
-### 3. **CLI Direct (stdio)**
+</details>
+
+<details>
+<summary><b>⌨️ CLI Direct (stdio)</b></summary>
+
+**Terminal automation and scripts:**
+
 ```bash
 python mcplease_mcp_server.py --transport stdio
 ```
-- **Works in**: Terminal, scripts, automation
+
+**Features:**
 - **Protocol**: MCP via stdio
 - **Use**: Direct command-line interaction
+- **Automation**: Perfect for CI/CD and scripts
+- **Integration**: Easy to pipe into other tools
 
-## 🛠️ Manual Setup (Optional)
+</details>
 
-If you prefer manual configuration:
+</details>
 
-```bash
-# Clone repository
-git clone https://github.com/your-org/mcplease.git
-cd mcplease
+## 🔧 **IDE Configuration**
 
-# Setup virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+<details>
+<summary><b>🔧 Setup Your IDE</b></summary>
 
-# Install dependencies
-pip install -r requirements.txt
+<details>
+<summary><b>🤖 Automatic Setup (Recommended)</b></summary>
 
-# Start server manually
-python mcplease_mcp_server.py --transport stdio  # For IDE
-python mcplease_http_server.py --port 8000      # For HTTP
-```
+**One command configures everything:**
 
-## 🔧 IDE Configuration
-
-### Automatic Setup (Recommended)
 ```bash
 python scripts/setup_ide.py
 ```
+
 This creates MCP configurations for:
 - **Cursor**: `~/.cursor/mcp.json`
 - **VS Code**: `~/.vscode/mcp.json`  
 - **Continue.dev**: `.continue/config.json`
 
-### Manual Configuration
+</details>
+
+<details>
+<summary><b>✏️ Manual Configuration</b></summary>
+
 For Cursor/VS Code, create `~/.cursor/mcp.json`:
+
 ```json
 {
   "mcpServers": {
@@ -195,27 +303,52 @@ For Cursor/VS Code, create `~/.cursor/mcp.json`:
 }
 ```
 
-## 💡 Available Tools
+</details>
+
+</details>
+
+## 💡 **Available Tools**
+
+<details>
+<summary><b>🛠️ MCP Tools Overview</b></summary>
 
 MCPlease provides these MCP tools:
 
+**File Operations:**
 - **`file/read`** - Read file contents for analysis
 - **`file/write`** - Write or modify file content
 - **`file/list`** - List files in directory
+
+**Terminal & Code:**
 - **`terminal/run`** - Execute terminal commands
 - **`codebase/search`** - Search codebase for patterns
+
+**AI-Powered Tools:**
 - **`ai/analyze`** - Analyze code using OSS-20B AI
 - **`ai/build`** - Generate code using OSS-20B AI
+
+**System Tools:**
 - **`health/check`** - Server health and status
 
-## 📊 Performance
+</details>
 
-- **Response Time**: Instant with fallback responses, AI-powered with OSS-20B
-- **Memory Usage**: Minimal (fallback mode), optimized (AI mode)
+## 📊 **Performance**
+
+<details>
+<summary><b>📊 Performance Metrics</b></summary>
+
+**Response Times:**
+- **Fallback Mode**: Instant responses
+- **AI Mode**: Model-dependent (first call loads model, subsequent calls are fast)
+
+**Resource Usage:**
+- **Memory**: Minimal (fallback mode), optimized (AI mode)
 - **Setup Time**: ~10 seconds total
 - **Context Length**: Unlimited (fallback mode), model-dependent (AI mode)
 
-## 🏗️ Architecture
+</details>
+
+## 🏗️ **Architecture**
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -229,9 +362,14 @@ MCPlease provides these MCP tools:
                        └──────────────────┘
 ```
 
-## 🧪 Development
+## 🧪 **Development**
 
-### Project Structure
+<details>
+<summary><b>🧪 Development & Testing</b></summary>
+
+<details>
+<summary><b>📁 Project Structure</b></summary>
+
 ```
 mcplease/
 ├── start.sh                    # Universal startup script
@@ -242,7 +380,11 @@ mcplease/
 └── docs/                       # Documentation
 ```
 
-### Running Tests
+</details>
+
+<details>
+<summary><b>🧪 Running Tests</b></summary>
+
 ```bash
 # Test all transports
 python scripts/test_transports.py
@@ -254,7 +396,11 @@ python scripts/run_comprehensive_tests.py
 python -m pytest tests/ -v
 ```
 
-### Testing Transports
+</details>
+
+<details>
+<summary><b>🔌 Testing Transports</b></summary>
+
 ```bash
 # Test stdio transport
 python mcplease_mcp_server.py --transport stdio
@@ -266,9 +412,18 @@ python mcplease_http_server.py --port 8000
 python scripts/test_transports.py
 ```
 
-## 🚀 Production Deployment
+</details>
 
-### Docker Deployment
+</details>
+
+## 🚀 **Production Deployment**
+
+<details>
+<summary><b>🚀 Production Setup</b></summary>
+
+<details>
+<summary><b>🐳 Docker Deployment</b></summary>
+
 ```bash
 # Build and run with Docker Compose
 docker-compose -f docker-compose.production.yml up -d
@@ -276,13 +431,21 @@ docker-compose -f docker-compose.production.yml up -d
 # Includes HAProxy, monitoring, and health checks
 ```
 
-### Monitoring
+</details>
+
+<details>
+<summary><b>📊 Monitoring Stack</b></summary>
+
 - **Prometheus** metrics collection
 - **Grafana** dashboards
 - **Loki** log aggregation
 - **Alertmanager** notifications
 
-## 🤝 Contributing
+</details>
+
+</details>
+
+## 🤝 **Contributing**
 
 We welcome contributions! 
 
@@ -291,30 +454,41 @@ We welcome contributions!
 3. Make your changes and add tests
 4. Submit a pull request
 
-## 📝 License
+## 📝 **License**
 
 This project is licensed under the MIT License.
 
-## 🆘 Support
+## 🆘 **Support**
 
-### Common Issues
+<details>
+<summary><b>🆘 Common Issues & Solutions</b></summary>
 
-#### Transport Issues
+<details>
+<summary><b>🔌 Transport Issues</b></summary>
+
 - **stdio not working**: Run `python scripts/setup_ide.py` and restart IDE
 - **HTTP not working**: Check if port is available, try `./start.sh --http`
 - **IDE not detecting**: Verify MCP configuration in `~/.cursor/mcp.json`
 
-#### Model Issues
+</details>
+
+<details>
+<summary><b>🧠 Model Issues</b></summary>
+
 - **Model not found**: Run `python download_model.py` first
 - **Slow responses**: OSS-20B model loads on first use, subsequent calls are fast
 - **Memory issues**: Model uses ~13GB RAM, ensure sufficient memory
 
-### Getting Help
+</details>
+
+</details>
+
+### **Getting Help**
 - **Documentation**: Check our documentation files
 - **Issues**: Report bugs on GitHub Issues
 - **Questions**: Open a GitHub Discussion
 
-## 🙏 Acknowledgments
+## 🙏 **Acknowledgments**
 
 - **MCP Protocol** for the universal server-client communication
 - **FastAPI** for the high-performance HTTP server
