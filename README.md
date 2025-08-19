@@ -27,19 +27,74 @@ Built for developers who want AI coding assistance that works in any environment
 - **Python 3.9+**
 - **15GB+ free disk space** (for OSS-20B model)
 
-### Download OSS-20B Model (Required)
+### Option 1: Local Setup (Recommended for Development)
 ```bash
+# Download model first
 python download_model.py
-```
 
-**This is required** - MCPlease needs the OSS-20B model to provide AI coding assistance.
-
-### Start MCPlease (Universal)
-```bash
+# One command gets everything working
 ./start.sh
 ```
 
-**That's it!** The script auto-detects your environment and starts the appropriate transport.
+### Option 2: Docker Setup (Recommended for Production)
+```bash
+# One command starts Docker containers
+./start-docker.sh
+
+# Or use Makefile
+make docker-start
+```
+
+**That's it!** Both scripts auto-detect your environment and start the appropriate setup.
+
+## 🐳 Docker Options
+
+### **Simple Docker (Default)**
+```bash
+./start-docker.sh
+# or
+make docker-start
+```
+- **Single container** with MCP server
+- **HTTP transport** on port 8000
+- **Health checks** enabled
+- **Perfect for** development and testing
+
+### **Production Docker Stack**
+```bash
+./start-docker.sh prod
+# or
+make docker-prod
+```
+- **Load balanced** MCP servers (2x instances)
+- **HAProxy** load balancer
+- **Monitoring stack** (Prometheus, Grafana, Loki)
+- **High availability** with health checks
+- **Perfect for** production deployments
+
+### **Development Docker Stack**
+```bash
+./start-docker.sh dev
+# or
+make docker-dev
+```
+- **Hot reload** for development
+- **Nginx** reverse proxy
+- **Redis** caching
+- **Perfect for** team development
+
+### **Docker Management**
+```bash
+# Stop containers
+make docker-stop
+
+# View logs
+make docker-logs
+
+# Or direct commands
+docker-compose down
+docker-compose logs -f
+```
 
 ## 🔌 Transport Options
 
