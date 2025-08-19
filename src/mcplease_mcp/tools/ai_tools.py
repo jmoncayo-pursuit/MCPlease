@@ -1,6 +1,7 @@
 """AI-powered MCP tools using FastMCP decorators."""
 
 import logging
+import structlog
 from typing import Dict, Any, Optional
 
 try:
@@ -12,8 +13,13 @@ except ImportError:
 
 from ..protocol.models import MCPTool
 from ..adapters.ai_adapter import MCPAIAdapter
+from ..utils.error_handler import get_error_handler, error_context
+from ..utils.exceptions import AIModelError, ValidationError
+from ..utils.logging import get_structured_logger, get_performance_logger
 
 logger = logging.getLogger(__name__)
+structured_logger = get_structured_logger(__name__)
+performance_logger = get_performance_logger()
 
 
 def create_ai_tools(mcp_instance: Optional[FastMCP] = None) -> Dict[str, MCPTool]:
@@ -257,32 +263,120 @@ async def code_completion_tool(
     Returns:
         MCP tool response with completion suggestions
     """
-    logger.info(f"Code completion requested for {language}")
+    import time
+    start_time = time.time()
     
-    if _ai_adapter:
+    error_handler = get_error_handler()
+    with error_handler.error_context(
+        context={
+            "tool": "code_completion",
+            "language": language,
+            "code_length": len(code),
+            "max_completions": max_completions
+        }
+    ):
         try:
-            # Use AI adapter for intelligent completion
-            context = {
-                "language": language,
-                "cursor_position": cursor_position,
-                "max_completions": max_completions
+            # Validate inputs
+            if not code.strip():
+                raise ValidationError("Code input cannot be empty")
+            
+            if max_completions < 1 or max_completions > 10:
+                raise ValidationError("max_completions must be between 1 and 10")
+            
+            structured_logger.info("Code completion started")
+            
+            if _ai_adapter:
+                try:
+                    # Use AI adapter for intelligent completion
+                    context = {
+                        "language": language,
+                        "cursor_position": cursor_position,
+                        "max_completions": max_completions
+                    }
+                    completion_text = await _ai_adapter.generate_completion(code, context)
+                    
+                    # Log AI inference performance
+                    duration_ms = (time.time() - start_time) * 1000
+                    performance_logger.ai_inference_timing(
+                        model_name="code_completion",
+                        input_tokens=len(code.split()),
+                        output_tokens=len(completion_text.split()),
+                        duration_ms=duration_ms
+                    )
+                    
+                except Exception as e:
+                    # Handle AI adapter errors with recovery
+                    error_handler = get_error_handler()
+                    error_context = await error_handler.handle_error(
+                        AIModelError(f"Code completion failed: {str(e)}"),
+                        context={
+                            "tool": "code_completion",
+                            "language": language,
+                            "ai_adapter_available": True
+                        },
+                        attempt_recovery=True
+                    )
+                    
+                    # Use fallback if recovery failed
+                    if not error_context.recovery_successful:
+                        completion_text = _get_code_completion_fallback(language, code)
+                    else:
+                        # Retry with recovery context
+                        completion_text = await _ai_adapter.generate_completion(code, context)
+            else:
+                # Fallback when no AI adapter is available
+                structured_logger.warning("AI adapter not available, using fallback")
+                completion_text = _get_code_completion_fallback(language, code)
+            
+            structured_logger.info("Code completion completed")
+            
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": completion_text
+                    }
+                ]
             }
-            completion_text = await _ai_adapter.generate_completion(code, context)
+            
         except Exception as e:
-            logger.error(f"AI completion failed: {e}")
-            completion_text = f"# Error generating AI completion: {e}\n# Fallback for {language} code"
-    else:
-        # Fallback when no AI adapter is available
-        completion_text = f"# Code completion for {language}\n# Context: {code[:50]}...\n# AI adapter not available"
-    
-    return {
-        "content": [
-            {
-                "type": "text",
-                "text": completion_text
+            # Final error handling
+            error_handler = get_error_handler()
+            await error_handler.handle_error(e, context={"tool": "code_completion"})
+            
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Code completion is temporarily unavailable: {str(e)}"
+                    }
+                ],
+                "isError": True
             }
-        ]
+
+
+def _get_code_completion_fallback(language: str, code: str) -> str:
+    """Get fallback code completion response.
+    
+    Args:
+        language: Programming language
+        code: Code context
+        
+    Returns:
+        Fallback completion text
+    """
+    fallback_completions = {
+        "python": "# Python completion suggestions:\n# - Check syntax and indentation\n# - Consider using type hints\n# - Follow PEP 8 style guidelines",
+        "javascript": "// JavaScript completion suggestions:\n// - Use const/let instead of var\n// - Consider async/await for promises\n// - Add error handling with try/catch",
+        "typescript": "// TypeScript completion suggestions:\n// - Add proper type annotations\n// - Use interfaces for object types\n// - Enable strict mode for better type checking",
+        "java": "// Java completion suggestions:\n// - Follow camelCase naming conventions\n// - Add proper exception handling\n// - Consider using generics for type safety",
+        "go": "// Go completion suggestions:\n// - Handle errors explicitly\n// - Use gofmt for formatting\n// - Follow Go naming conventions"
     }
+    
+    return fallback_completions.get(
+        language.lower(),
+        f"# {language} completion suggestions:\n# - Check syntax and formatting\n# - Follow language best practices\n# - Add appropriate error handling"
+    )
 
 
 async def code_explanation_tool(
@@ -302,32 +396,140 @@ async def code_explanation_tool(
     Returns:
         MCP tool response with code explanation
     """
-    logger.info(f"Code explanation requested for {language} with {detail_level} detail")
+    import time
+    start_time = time.time()
     
-    if _ai_adapter:
+    error_handler = get_error_handler()
+    with error_handler.error_context(
+        context={
+            "tool": "code_explanation",
+            "language": language,
+            "detail_level": detail_level,
+            "focus": focus,
+            "code_length": len(code)
+        }
+    ):
         try:
-            # Use AI adapter for intelligent explanation
-            question = f"Focus on {focus}" if focus else None
-            explanation_text = await _ai_adapter.explain_code(
-                code, language, detail_level, question
-            )
-        except Exception as e:
-            logger.error(f"AI explanation failed: {e}")
-            explanation_text = f"# Error generating AI explanation: {e}\n# Fallback explanation for {language} code"
-    else:
-        # Fallback when no AI adapter is available
-        explanation_text = f"# Code Explanation ({detail_level})\n\n"
-        explanation_text += f"This {language} code:\n```{language}\n{code}\n```\n\n"
-        explanation_text += "AI adapter not available for detailed explanation."
-    
-    return {
-        "content": [
-            {
-                "type": "text",
-                "text": explanation_text
+            # Validate inputs
+            if not code.strip():
+                raise ValidationError("Code input cannot be empty")
+            
+            valid_detail_levels = ["brief", "detailed", "comprehensive"]
+            if detail_level not in valid_detail_levels:
+                raise ValidationError(f"detail_level must be one of: {valid_detail_levels}")
+            
+            structured_logger.info("Code explanation started")
+            
+            if _ai_adapter:
+                try:
+                    # Use AI adapter for intelligent explanation
+                    question = f"Focus on {focus}" if focus else None
+                    explanation_text = await _ai_adapter.explain_code(
+                        code, language, detail_level, question
+                    )
+                    
+                    # Log AI inference performance
+                    duration_ms = (time.time() - start_time) * 1000
+                    performance_logger.ai_inference_timing(
+                        model_name="code_explanation",
+                        input_tokens=len(code.split()),
+                        output_tokens=len(explanation_text.split()),
+                        duration_ms=duration_ms
+                    )
+                    
+                except Exception as e:
+                    # Handle AI adapter errors with recovery
+                    error_handler = get_error_handler()
+                    error_context = await error_handler.handle_error(
+                        AIModelError(f"Code explanation failed: {str(e)}"),
+                        context={
+                            "tool": "code_explanation",
+                            "language": language,
+                            "detail_level": detail_level,
+                            "ai_adapter_available": True
+                        },
+                        attempt_recovery=True
+                    )
+                    
+                    # Use fallback if recovery failed
+                    if not error_context.recovery_successful:
+                        explanation_text = _get_code_explanation_fallback(language, code, detail_level, focus)
+                    else:
+                        # Retry with recovery context
+                        explanation_text = await _ai_adapter.explain_code(code, language, detail_level, question)
+            else:
+                # Fallback when no AI adapter is available
+                structured_logger.warning("AI adapter not available, using fallback")
+                explanation_text = _get_code_explanation_fallback(language, code, detail_level, focus)
+            
+            structured_logger.info("Code explanation completed")
+            
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": explanation_text
+                    }
+                ]
             }
-        ]
-    }
+            
+        except Exception as e:
+            # Final error handling
+            error_handler = get_error_handler()
+            await error_handler.handle_error(e, context={"tool": "code_explanation"})
+            
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Code explanation is temporarily unavailable: {str(e)}"
+                    }
+                ],
+                "isError": True
+            }
+
+
+def _get_code_explanation_fallback(language: str, code: str, detail_level: str, focus: Optional[str]) -> str:
+    """Get fallback code explanation response.
+    
+    Args:
+        language: Programming language
+        code: Code to explain
+        detail_level: Level of detail
+        focus: Specific focus area
+        
+    Returns:
+        Fallback explanation text
+    """
+    explanation = f"# Code Explanation ({detail_level})\n\n"
+    explanation += f"**Language:** {language}\n"
+    explanation += f"**Code Length:** {len(code)} characters\n\n"
+    
+    if focus:
+        explanation += f"**Focus Area:** {focus}\n\n"
+    
+    explanation += f"**Code:**\n```{language}\n{code}\n```\n\n"
+    
+    # Basic analysis based on language
+    if language.lower() == "python":
+        explanation += "**Basic Analysis:**\n"
+        explanation += "- This appears to be Python code\n"
+        explanation += "- Check for proper indentation and syntax\n"
+        explanation += "- Consider adding type hints for better code clarity\n"
+    elif language.lower() in ["javascript", "typescript"]:
+        explanation += "**Basic Analysis:**\n"
+        explanation += f"- This appears to be {language} code\n"
+        explanation += "- Check for proper semicolon usage\n"
+        explanation += "- Consider using modern ES6+ features\n"
+    else:
+        explanation += "**Basic Analysis:**\n"
+        explanation += f"- This appears to be {language} code\n"
+        explanation += "- Follow language-specific best practices\n"
+        explanation += "- Ensure proper syntax and formatting\n"
+    
+    explanation += "\n*Note: AI-powered analysis is temporarily unavailable. This is a basic fallback explanation.*"
+    
+    return explanation
 
 
 async def debug_assistance_tool(
@@ -349,36 +551,195 @@ async def debug_assistance_tool(
     Returns:
         MCP tool response with debugging analysis
     """
-    logger.info(f"Debug assistance requested for {language}")
+    import time
+    start_time = time.time()
     
-    if _ai_adapter:
+    error_handler = get_error_handler()
+    with error_handler.error_context(
+        context={
+            "tool": "debug_assistance",
+            "language": language,
+            "has_error_message": bool(error_message),
+            "has_expected_behavior": bool(expected_behavior),
+            "has_actual_behavior": bool(actual_behavior),
+            "code_length": len(code)
+        }
+    ):
         try:
-            # Use AI adapter for intelligent debugging
-            debug_text = await _ai_adapter.debug_code(
-                code, language, error_message, expected_behavior, actual_behavior
-            )
-        except Exception as e:
-            logger.error(f"AI debug assistance failed: {e}")
-            debug_text = f"# Error generating AI debug assistance: {e}\n# Fallback debug analysis for {language}"
-    else:
-        # Fallback when no AI adapter is available
-        debug_text = f"# Debug Analysis for {language}\n\n"
-        debug_text += f"**Code:**\n```{language}\n{code}\n```\n\n"
-        
-        if error_message:
-            debug_text += f"**Error:** {error_message}\n\n"
-        if expected_behavior:
-            debug_text += f"**Expected:** {expected_behavior}\n\n"
-        if actual_behavior:
-            debug_text += f"**Actual:** {actual_behavior}\n\n"
+            # Validate inputs
+            if not code.strip():
+                raise ValidationError("Code input cannot be empty")
             
-        debug_text += "AI adapter not available for detailed debugging analysis."
-    
-    return {
-        "content": [
-            {
-                "type": "text",
-                "text": debug_text
+            structured_logger.info("Debug assistance started")
+            
+            if _ai_adapter:
+                try:
+                    # Use AI adapter for intelligent debugging
+                    debug_text = await _ai_adapter.debug_code(
+                        code, language, error_message, expected_behavior, actual_behavior
+                    )
+                    
+                    # Log AI inference performance
+                    duration_ms = (time.time() - start_time) * 1000
+                    performance_logger.ai_inference_timing(
+                        model_name="debug_assistance",
+                        input_tokens=len(code.split()) + len((error_message or "").split()),
+                        output_tokens=len(debug_text.split()),
+                        duration_ms=duration_ms
+                    )
+                    
+                except Exception as e:
+                    # Handle AI adapter errors with recovery
+                    error_handler = get_error_handler()
+                    error_context = await error_handler.handle_error(
+                        AIModelError(f"Debug assistance failed: {str(e)}"),
+                        context={
+                            "tool": "debug_assistance",
+                            "language": language,
+                            "has_error_message": bool(error_message),
+                            "ai_adapter_available": True
+                        },
+                        attempt_recovery=True
+                    )
+                    
+                    # Use fallback if recovery failed
+                    if not error_context.recovery_successful:
+                        debug_text = _get_debug_assistance_fallback(
+                            language, code, error_message, expected_behavior, actual_behavior
+                        )
+                    else:
+                        # Retry with recovery context
+                        debug_text = await _ai_adapter.debug_code(
+                            code, language, error_message, expected_behavior, actual_behavior
+                        )
+            else:
+                # Fallback when no AI adapter is available
+                structured_logger.warning("AI adapter not available, using fallback")
+                debug_text = _get_debug_assistance_fallback(
+                    language, code, error_message, expected_behavior, actual_behavior
+                )
+            
+            structured_logger.info("Debug assistance completed")
+            
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": debug_text
+                    }
+                ]
             }
-        ]
-    }
+            
+        except Exception as e:
+            # Final error handling
+            error_handler = get_error_handler()
+            await error_handler.handle_error(e, context={"tool": "debug_assistance"})
+            
+            return {
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Debug assistance is temporarily unavailable: {str(e)}"
+                    }
+                ],
+                "isError": True
+            }
+
+
+def _get_debug_assistance_fallback(
+    language: str, 
+    code: str, 
+    error_message: Optional[str], 
+    expected_behavior: Optional[str], 
+    actual_behavior: Optional[str]
+) -> str:
+    """Get fallback debug assistance response.
+    
+    Args:
+        language: Programming language
+        code: Code to debug
+        error_message: Error message if available
+        expected_behavior: Expected behavior
+        actual_behavior: Actual behavior
+        
+    Returns:
+        Fallback debug analysis text
+    """
+    debug_text = f"# Debug Analysis for {language}\n\n"
+    debug_text += f"**Code:**\n```{language}\n{code}\n```\n\n"
+    
+    if error_message:
+        debug_text += f"**Error Message:**\n```\n{error_message}\n```\n\n"
+        
+        # Basic error analysis
+        debug_text += "**Basic Error Analysis:**\n"
+        if "syntax" in error_message.lower():
+            debug_text += "- This appears to be a syntax error\n"
+            debug_text += "- Check for missing brackets, parentheses, or semicolons\n"
+            debug_text += "- Verify proper indentation (especially for Python)\n"
+        elif "name" in error_message.lower() and "not defined" in error_message.lower():
+            debug_text += "- This appears to be a name/variable error\n"
+            debug_text += "- Check if all variables are properly declared\n"
+            debug_text += "- Verify import statements are correct\n"
+        elif "type" in error_message.lower():
+            debug_text += "- This appears to be a type-related error\n"
+            debug_text += "- Check data types and conversions\n"
+            debug_text += "- Verify function arguments match expected types\n"
+        else:
+            debug_text += "- Review the error message carefully\n"
+            debug_text += "- Check the line number mentioned in the error\n"
+            debug_text += "- Look for common issues in the problematic area\n"
+        debug_text += "\n"
+    
+    if expected_behavior:
+        debug_text += f"**Expected Behavior:**\n{expected_behavior}\n\n"
+    
+    if actual_behavior:
+        debug_text += f"**Actual Behavior:**\n{actual_behavior}\n\n"
+    
+    # Language-specific debugging tips
+    debug_text += "**General Debugging Tips:**\n"
+    if language.lower() == "python":
+        debug_text += "- Use print() statements to trace execution\n"
+        debug_text += "- Check indentation carefully\n"
+        debug_text += "- Use Python debugger (pdb) for step-by-step debugging\n"
+        debug_text += "- Verify all imports are available\n"
+    elif language.lower() in ["javascript", "typescript"]:
+        debug_text += "- Use console.log() to trace execution\n"
+        debug_text += "- Check browser developer tools for errors\n"
+        debug_text += "- Verify all variables are properly declared\n"
+        debug_text += "- Check for asynchronous operation issues\n"
+    elif language.lower() == "java":
+        debug_text += "- Use System.out.println() for debugging output\n"
+        debug_text += "- Check for null pointer exceptions\n"
+        debug_text += "- Verify class and method visibility\n"
+        debug_text += "- Use IDE debugger for step-by-step analysis\n"
+    else:
+        debug_text += "- Add logging/print statements to trace execution\n"
+        debug_text += "- Use language-specific debugging tools\n"
+        debug_text += "- Check documentation for common issues\n"
+        debug_text += "- Verify syntax and language-specific rules\n"
+    
+    debug_text += "\n*Note: AI-powered debugging analysis is temporarily unavailable. This is a basic fallback analysis.*"
+    
+    return debug_text
+
+
+class AITools:
+    """Simple AITools class for compatibility with advanced tools."""
+    
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+    
+    async def _call_ai_model(self, prompt: str) -> str:
+        """Call AI model with a prompt.
+        
+        Args:
+            prompt: The prompt to send to the AI model
+            
+        Returns:
+            AI model response
+        """
+        # This is a placeholder implementation
+        # In a real implementation, this would call the actual AI model
+        return f"AI response to: {prompt[:100]}..."

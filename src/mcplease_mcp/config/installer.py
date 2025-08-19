@@ -1,11 +1,12 @@
 """Installer-specific configuration management."""
 
 import json
+import logging
+import subprocess
 from dataclasses import dataclass, asdict
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
-from datetime import datetime
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +256,8 @@ def create_installer_config_from_hardware(hardware_config: Dict[str, Any], insta
         result = subprocess.run(["uv", "--version"], capture_output=True, text=True, timeout=5)
         if result.returncode == 0:
             uv_version = result.stdout.strip()
-    except Exception:
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+        logger.debug(f"Could not get uv version: {e}")
         pass
     
     return InstallerConfig(

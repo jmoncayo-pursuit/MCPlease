@@ -1,12 +1,12 @@
 """Configuration management for MCPlease MCP Server."""
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from pydantic import BaseModel, Field
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -131,42 +131,53 @@ class ConfigManager:
         Returns:
             Flattened configuration dictionary
         """
+        if not isinstance(config, dict):
+            logger.warning(f"Expected dict for config, got {type(config)}")
+            return {}
+        
         flattened = {}
         
-        for key, value in config.items():
-            full_key = f"{prefix}_{key}" if prefix else key
-            
-            if isinstance(value, dict) and key not in ["hardware", "installation"]:
-                # Recursively flatten nested dicts (except metadata)
-                flattened.update(self._flatten_config(value, full_key))
-            else:
-                # Map nested keys to flat keys
-                if key == "host" and prefix == "server":
-                    flattened["host"] = value
-                elif key == "port" and prefix == "server":
-                    flattened["port"] = value
-                elif key == "transport" and prefix == "server":
-                    flattened["transport"] = value
-                elif key == "max_workers" and prefix == "server":
-                    flattened["max_workers"] = value
-                elif key == "model" and prefix == "ai":
-                    flattened["ai_model"] = value
-                elif key == "memory_limit" and prefix == "ai":
-                    flattened["memory_limit"] = value
-                elif key == "quantization" and prefix == "ai":
-                    flattened["quantization"] = value
-                elif key == "device" and prefix == "ai":
-                    flattened["device"] = value
-                elif key == "level" and prefix == "security":
-                    flattened["security_level"] = value
-                elif key == "require_auth" and prefix == "security":
-                    flattened["require_auth"] = value
-                elif key == "enable_tls" and prefix == "security":
-                    flattened["enable_tls"] = value
-                elif key == "is_raspberry_pi" and "hardware" in config:
-                    flattened["is_raspberry_pi"] = config["hardware"].get("is_raspberry_pi", False)
-                elif key == "enable_ngrok" and "raspberry_pi" in config:
-                    flattened["enable_ngrok"] = config["raspberry_pi"].get("enable_ngrok", False)
+        try:
+            for key, value in config.items():
+                if not isinstance(key, str):
+                    logger.warning(f"Skipping non-string key: {key}")
+                    continue
+                
+                full_key = f"{prefix}_{key}" if prefix else key
+                
+                if isinstance(value, dict) and key not in ["hardware", "installation"]:
+                    # Recursively flatten nested dicts (except metadata)
+                    flattened.update(self._flatten_config(value, full_key))
+                else:
+                    # Map nested keys to flat keys
+                    if key == "host" and prefix == "server":
+                        flattened["host"] = value
+                    elif key == "port" and prefix == "server":
+                        flattened["port"] = value
+                    elif key == "transport" and prefix == "server":
+                        flattened["transport"] = value
+                    elif key == "max_workers" and prefix == "server":
+                        flattened["max_workers"] = value
+                    elif key == "model" and prefix == "ai":
+                        flattened["ai_model"] = value
+                    elif key == "memory_limit" and prefix == "ai":
+                        flattened["memory_limit"] = value
+                    elif key == "quantization" and prefix == "ai":
+                        flattened["quantization"] = value
+                    elif key == "device" and prefix == "ai":
+                        flattened["device"] = value
+                    elif key == "level" and prefix == "security":
+                        flattened["security_level"] = value
+                    elif key == "require_auth" and prefix == "security":
+                        flattened["require_auth"] = value
+                    elif key == "enable_tls" and prefix == "security":
+                        flattened["enable_tls"] = value
+                    elif key == "is_raspberry_pi" and isinstance(config.get("hardware"), dict):
+                        flattened["is_raspberry_pi"] = config["hardware"].get("is_raspberry_pi", False)
+                    elif key == "enable_ngrok" and isinstance(config.get("raspberry_pi"), dict):
+                        flattened["enable_ngrok"] = config["raspberry_pi"].get("enable_ngrok", False)
+        except Exception as e:
+            logger.error(f"Error flattening config: {e}")
         
         return flattened
     

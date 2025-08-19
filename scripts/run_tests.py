@@ -6,15 +6,16 @@ This script runs the complete test suite with coverage reporting,
 performance testing, and CI/CD integration.
 """
 
-import os
-import sys
-import subprocess
 import argparse
 import json
+import logging
+import os
+import subprocess
+import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-import tempfile
 
 
 class TestRunner:
@@ -25,6 +26,7 @@ class TestRunner:
         self.test_results = {}
         self.coverage_data = {}
         self.performance_data = {}
+        self.logger = logging.getLogger(__name__)
         
     def run_unit_tests(self, verbose: bool = False, coverage: bool = True) -> Dict[str, Any]:
         """Run unit tests with optional coverage."""
@@ -400,7 +402,7 @@ class TestRunner:
     def _has_pytest_benchmark(self) -> bool:
         """Check if pytest-benchmark is available."""
         try:
-            import pytest_benchmark
+            import pytest_benchmark  # noqa: F401
             return True
         except ImportError:
             return False
@@ -463,6 +465,12 @@ class TestRunner:
 
 def main():
     """Main test runner entry point."""
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
     parser = argparse.ArgumentParser(description="MCPlease MCP Server Test Runner")
     parser.add_argument("--unit", action="store_true", help="Run unit tests only")
     parser.add_argument("--integration", action="store_true", help="Run integration tests only")
