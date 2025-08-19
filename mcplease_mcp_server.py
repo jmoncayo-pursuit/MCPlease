@@ -2,6 +2,7 @@
 """
 MCPlease - MCP Server for AI-Native Builders
 Full MCP protocol implementation with file operations, terminal access, and OSS-20B AI
+Supports both stdio (IDE) and HTTP (Continue.dev, web clients) transports
 """
 
 import asyncio
@@ -10,6 +11,8 @@ import logging
 import os
 import subprocess
 import sys
+import time
+import argparse
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -23,15 +26,22 @@ try:
         Tool, TextContent, ImageContent, EmbeddedResource
     )
 except ImportError:
-    print("❌ MCP library not found. Installing...")
-    subprocess.run([sys.executable, "-m", "pip", "install", "mcp"], check=True)
-    from mcp.server import Server
-    from mcp.server.models import InitializationOptions
-    from mcp.server.stdio import stdio_server
-    from mcp.types import (
-        CallToolRequest, CallToolResult, ListToolsRequest, ListToolsResult,
-        Tool, TextContent, ImageContent, EmbeddedResource
-    )
+    print("❌ MCP library not found.")
+    print("💡 Please activate your virtual environment and run:")
+    print("   source .venv/bin/activate")
+    print("   pip install mcp")
+    sys.exit(1)
+
+# HTTP transport imports
+try:
+    import uvicorn
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    HTTP_AVAILABLE = True
+except ImportError:
+    print("⚠️  FastAPI not installed - HTTP transport disabled")
+    HTTP_AVAILABLE = False
 
 # AI Model imports
 try:
@@ -187,14 +197,22 @@ class MCPleaseServer(Server):
                     },
                     "required": ["requirements"]
                 }
+            ),
+            Tool(
+                name="health/check",
+                description="Return server health and connection status",
+                inputSchema={
+                    "type": "object",
+                    "properties": {}
+                }
             )
         ]
         return ListToolsResult(tools=tools)
 
     async def call_tool(self, request: CallToolRequest) -> CallToolResult:
         """Execute MCP tools for AI-native building"""
-        tool_name = request.name
-        arguments = request.arguments
+        tool_name = request.params.name
+        arguments = request.params.arguments or {}
         
         try:
             if tool_name == "file/read":
@@ -211,6 +229,8 @@ class MCPleaseServer(Server):
                 result = await self._ai_analyze(arguments.get("prompt", ""), arguments.get("context", ""))
             elif tool_name == "ai/build":
                 result = await self._ai_build(arguments.get("requirements", ""), arguments.get("context", ""))
+            elif tool_name == "health/check":
+                result = await self._health_check()
             else:
                 result = f"Unknown tool: {tool_name}"
                 
@@ -302,6 +322,30 @@ class MCPleaseServer(Server):
         """Analyze code using OSS-20B AI"""
         return await self.ai_generate(prompt, context)
 
+    async def _health_check(self) -> str:
+        """Return a quick server health/connection payload."""
+        try:
+            try:
+                import importlib.metadata as importlib_metadata
+                mcp_version = importlib_metadata.version("mcp")
+            except Exception:
+                mcp_version = "unknown"
+
+            ai_status = "ready" if getattr(self, "model", None) and getattr(self, "tokenizer", None) else "fallback"
+
+            payload = {
+                "status": "ok",
+                "server": "MCPlease",
+                "time": int(time.time()),
+                "cwd": str(self.workspace_root),
+                "python": sys.executable,
+                "mcp_version": mcp_version,
+                "ai": ai_status
+            }
+            return json.dumps(payload)
+        except Exception as e:
+            return json.dumps({"status": "error", "error": str(e)})
+
     async def _ai_build(self, requirements: str, context: str = "") -> str:
         """Generate code using OSS-20B AI"""
         prompt = f"Build this: {requirements}"
@@ -310,30 +354,169 @@ class MCPleaseServer(Server):
         
         return await self.ai_generate(prompt, context)
 
+# HTTP transport models
+class HTTPToolCall(BaseModel):
+    name: str
+    arguments: Dict[str, Any] = {}
+
+class HTTPToolResult(BaseModel):
+    content: List[Dict[str, Any]]
+    isError: bool = False
+
+class HTTPTransport:
+    """HTTP transport for MCP server - enables Continue.dev and web client integration"""
+    
+    def __init__(self, server: MCPleaseServer):
+        self.server = server
+        self.app = FastAPI(title="MCPlease MCP Server", version="1.0.0")
+        self._setup_routes()
+        self._setup_middleware()
+    
+    def _setup_middleware(self):
+        """Setup CORS and other middleware"""
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # For development - restrict in production
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    
+    def _setup_routes(self):
+        """Setup HTTP endpoints that mirror MCP protocol"""
+        
+        @self.app.get("/")
+        async def root():
+            return {
+                "name": "MCPlease MCP Server",
+                "version": "1.0.0",
+                "transport": "HTTP",
+                "status": "running"
+            }
+        
+        @self.app.get("/health")
+        async def health():
+            """Health check endpoint"""
+            try:
+                health_result = await self.server._health_check()
+                return json.loads(health_result)
+            except Exception as e:
+                return {"status": "error", "error": str(e)}
+        
+        @self.app.get("/tools")
+        async def list_tools():
+            """List available MCP tools"""
+            try:
+                tools_result = await self.server.list_tools(ListToolsRequest())
+                return {
+                    "tools": [
+                        {
+                            "name": tool.name,
+                            "description": tool.description,
+                            "inputSchema": tool.inputSchema
+                        }
+                        for tool in tools_result.tools
+                    ]
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.post("/tools/call")
+        async def call_tool(tool_call: HTTPToolCall):
+            """Call an MCP tool via HTTP"""
+            try:
+                result = await self.server.call_tool(
+                    CallToolRequest(
+                        name=tool_call.name,
+                        arguments=tool_call.arguments
+                    )
+                )
+                
+                # Convert MCP result to HTTP response
+                content = []
+                for item in result.content:
+                    if hasattr(item, 'type') and item.type == 'text':
+                        content.append({"type": "text", "text": item.text})
+                    elif hasattr(item, 'type') and item.type == 'image':
+                        content.append({"type": "image", "image": item.image})
+                    else:
+                        content.append({"type": "text", "text": str(item)})
+                
+                return HTTPToolResult(content=content)
+                
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+        
+        @self.app.post("/mcp/initialize")
+        async def initialize():
+            """MCP initialize endpoint"""
+            try:
+                init_options = InitializationOptions(
+                    protocol_version="2024-11-05",
+                    server_name="MCPlease",
+                    server_version="1.0.0",
+                    capabilities={},
+                    client_info={
+                        "name": "HTTP Client",
+                        "version": "1.0.0"
+                    }
+                )
+                return {"status": "initialized", "options": init_options.dict()}
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
 async def main():
-    """Start the MCPlease MCP server"""
+    """Start the MCPlease MCP server with transport selection"""
+    parser = argparse.ArgumentParser(description="MCPlease MCP Server")
+    parser.add_argument("--transport", choices=["stdio", "http"], default="stdio",
+                       help="Transport type: stdio (IDE) or http (Continue.dev)")
+    parser.add_argument("--host", default="127.0.0.1", help="HTTP host (for http transport)")
+    parser.add_argument("--port", type=int, default=8000, help="HTTP port (for http transport)")
+    args = parser.parse_args()
+    
     server = MCPleaseServer()
     
     logger.info("🚀 Starting MCPlease MCP Server...")
     logger.info("🏗️  Built for AI-Native Builders")
     logger.info(" Workspace root: %s", server.workspace_root)
     logger.info("🤖 AI Model: %s", "OSS-20B" if AI_AVAILABLE else "Fallback")
+    logger.info("🚇 Transport: %s", args.transport.upper())
     
-    # Create initialization options
-    init_options = InitializationOptions(
-        protocol_version="2024-11-05",
-        server_name="MCPlease",
-        server_version="1.0.0",
-        capabilities={},
-        client_info={
-            "name": "MCPlease",
-            "version": "1.0.0"
-        }
-    )
-    
-    # Run the server with stdio
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(read_stream, write_stream, init_options)
+    if args.transport == "http":
+        if not HTTP_AVAILABLE:
+            logger.error("❌ HTTP transport not available - install FastAPI: pip install fastapi uvicorn")
+            sys.exit(1)
+        
+        transport = HTTPTransport(server)
+        logger.info("🌐 HTTP server starting on %s:%d", args.host, args.port)
+        logger.info("🔗 Continue.dev compatible endpoint: http://%s:%d", args.host, args.port)
+        
+        # Use uvicorn.Server directly to avoid event loop conflicts
+        config = uvicorn.Config(
+            transport.app,
+            host=args.host,
+            port=args.port,
+            log_level="info"
+        )
+        server_uvicorn = uvicorn.Server(config)
+        server_uvicorn.run()
+        
+    else:  # stdio transport
+        # Create initialization options
+        init_options = InitializationOptions(
+            protocol_version="2024-11-05",
+            server_name="MCPlease",
+            server_version="1.0.0",
+            capabilities={},
+            client_info={
+                "name": "MCPlease",
+                "version": "1.0.0"
+            }
+        )
+        
+        # Run the server with stdio
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(read_stream, write_stream, init_options)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -62,3 +62,6 @@ logs/
 # Temporary files
 tmp/
 temp/
+
+# MCP
+.mcp_contexts/
