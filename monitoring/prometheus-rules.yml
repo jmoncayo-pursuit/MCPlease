@@ -1,0 +1,247 @@
+# Prometheus alerting rules for MCPlease MCP Server
+groups:
+  - name: mcplease-mcp
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: mcplease:error_rate > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: mcplease-mcp
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+          value: "{{ $value | humanizePercentage }}"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: mcplease:response_time_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: mcplease-mcp
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.instance }}"
+          value: "{{ $value }}s"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (mcplease:memory_usage_bytes / mcplease_memory_total_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: mcplease-mcp
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+          value: "{{ $value | humanizePercentage }}"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: mcplease:cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: mcplease-mcp
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+          value: "{{ $value | humanizePercentage }}"
+
+      # Service down
+      - alert: ServiceDown
+        expr: up{job="mcplease-mcp"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: mcplease-mcp
+        annotations:
+          summary: "MCP Server is down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute"
+
+      # High connection count
+      - alert: HighConnectionCount
+        expr: mcplease:active_connections > 800
+        for: 5m
+        labels:
+          severity: warning
+          service: mcplease-mcp
+        annotations:
+          summary: "High connection count detected"
+          description: "Active connections: {{ $value }} for {{ $labels.instance }}"
+          value: "{{ $value }}"
+
+  - name: haproxy
+    rules:
+      # HAProxy backend down
+      - alert: HAProxyBackendDown
+        expr: haproxy_server_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: haproxy
+        annotations:
+          summary: "HAProxy backend is down"
+          description: "Backend {{ $labels.server }} is down"
+
+      # High HAProxy error rate
+      - alert: HAProxyHighErrorRate
+        expr: rate(haproxy_server_http_responses_total{code="5xx"}[5m]) / rate(haproxy_server_http_responses_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: haproxy
+        annotations:
+          summary: "High HAProxy error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.server }}"
+          value: "{{ $value | humanizePercentage }}"
+
+  - name: redis
+    rules:
+      # Redis down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance is not responding"
+
+      # High Redis memory usage
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+          value: "{{ $value | humanizePercentage }}"
+
+      # Redis connection limit
+      - alert: RedisConnectionLimit
+        expr: redis_connected_clients / redis_config_maxclients > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis connection limit approaching"
+          description: "Redis connections are {{ $value | humanizePercentage }} of limit"
+          value: "{{ $value | humanizePercentage }}"
+
+  - name: system
+    rules:
+      # High system load
+      - alert: HighSystemLoad
+        expr: node_load1 > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High system load"
+          description: "System load is {{ $value }} for {{ $labels.instance }}"
+          value: "{{ $value }}"
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value | humanizePercentage }} for {{ $labels.mountpoint }}"
+          value: "{{ $value | humanizePercentage }}"
+
+      # High memory pressure
+      - alert: HighMemoryPressure
+        expr: rate(node_memory_pgmajfault_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory pressure"
+          description: "Major page faults: {{ $value }} per second"
+          value: "{{ $value }}"
+
+  - name: monitoring
+    rules:
+      # Prometheus down
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus monitoring is not responding"
+
+      # Grafana down
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana dashboard is not responding"
+
+      # Alertmanager down
+      - alert: AlertmanagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: monitoring
+        annotations:
+          summary: "Alertmanager is down"
+          description: "Alertmanager is not responding"
+
+  - name: business
+    rules:
+      # Low request rate (possible service issue)
+      - alert: LowRequestRate
+        expr: mcplease:requests_total < 1
+        for: 10m
+        labels:
+          severity: warning
+          service: mcplease-mcp
+        annotations:
+          summary: "Low request rate detected"
+          description: "Request rate is {{ $value }} requests per second"
+          value: "{{ $value }}"
+
+      # High latency impact
+      - alert: HighLatencyImpact
+        expr: mcplease:response_time_seconds > 10
+        for: 2m
+        labels:
+          severity: critical
+          service: mcplease-mcp
+        annotations:
+          summary: "Critical response time impact"
+          description: "Response time is {{ $value }}s - user experience severely impacted"
+          value: "{{ $value }}s"
+
+      # Service availability
+      - alert: ServiceUnavailable
+        expr: mcplease:error_rate > 0.2
+        for: 2m
+        labels:
+          severity: critical
+          service: mcplease-mcp
+        annotations:
+          summary: "Service availability compromised"
+          description: "Error rate is {{ $value | humanizePercentage }} - service may be unavailable"
+          value: "{{ $value | humanizePercentage }}"

@@ -1,0 +1,292 @@
+version: '3.8'
+
+# Production deployment configuration for MCPlease MCP Server
+# Includes monitoring, load balancing, and high availability
+
+services:
+  # MCP Server instances (load balanced)
+  mcplease-mcp-1:
+    image: ghcr.io/jmoncayo-pursuit/mcplease:latest
+    container_name: mcplease-mcp-1
+    restart: unless-stopped
+    environment:
+      - MCPLEASE_ENVIRONMENT=production
+      - MCPLEASE_LOG_LEVEL=INFO
+      - MCPLEASE_ENABLE_TLS=true
+      - MCPLEASE_REQUIRE_AUTH=true
+      - MCPLEASE_CLUSTER_MODE=true
+      - MCPLEASE_NODE_ID=node-1
+      - MCPLEASE_MAX_WORKERS=8
+      - MCPLEASE_MAX_CONNECTIONS=1000
+    volumes:
+      - ./models:/app/models:ro
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - ./ssl:/app/ssl:ro
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+          cpus: '8.0'
+        reservations:
+          memory: 8G
+          cpus: '4.0'
+
+  mcplease-mcp-2:
+    image: ghcr.io/jmoncayo-pursuit/mcplease:latest
+    container_name: mcplease-mcp-2
+    restart: unless-stopped
+    environment:
+      - MCPLEASE_ENVIRONMENT=production
+      - MCPLEASE_LOG_LEVEL=INFO
+      - MCPLEASE_ENABLE_TLS=true
+      - MCPLEASE_REQUIRE_AUTH=true
+      - MCPLEASE_CLUSTER_MODE=true
+      - MCPLEASE_NODE_ID=node-2
+      - MCPLEASE_MAX_WORKERS=8
+      - MCPLEASE_MAX_CONNECTIONS=1000
+    volumes:
+      - ./models:/app/models:ro
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - ./ssl:/app/ssl:ro
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+          cpus: '8.0'
+        reservations:
+          memory: 8G
+          cpus: '4.0'
+
+  # Load balancer (HAProxy)
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: mcplease-haproxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8404:8404"  # HAProxy stats
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./ssl:/etc/ssl/private:ro
+      - ./haproxy-logs:/var/log/haproxy
+    depends_on:
+      - mcplease-mcp-1
+      - mcplease-mcp-2
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8404/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for session management and caching
+  redis:
+    image: redis:7-alpine
+    container_name: mcplease-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL for persistent data (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: mcplease-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=mcplease
+      - POSTGRES_USER=mcplease_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    secrets:
+      - postgres_password
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcplease_user -d mcplease"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring stack
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mcplease-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus-rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mcplease-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_password
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    secrets:
+      - grafana_password
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: mcplease-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: mcplease-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./logs:/var/log/mcplease:ro
+      - /var/log:/var/log:ro
+    networks:
+      - mcplease-production
+    depends_on:
+      - loki
+
+  # Alerting
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: mcplease-alertmanager
+    restart: unless-stopped
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.listen-address=:9093'
+    networks:
+      - mcplease-production
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backup service
+  backup:
+    image: alpine:latest
+    container_name: mcplease-backup
+    restart: "no"
+    volumes:
+      - ./backup:/backup
+      - ./models:/models:ro
+      - ./config:/config:ro
+      - ./logs:/logs:ro
+    networks:
+      - mcplease-production
+    command: |
+      sh -c "
+        echo 'Starting backup at $(date)' &&
+        tar -czf /backup/mcplease-backup-$(date +%Y%m%d-%H%M%S).tar.gz \
+          /models /config /logs &&
+        echo 'Backup completed at $(date)' &&
+        find /backup -name 'mcplease-backup-*.tar.gz' -mtime +7 -delete
+      "
+
+networks:
+  mcplease-production:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  loki-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  grafana_password:
+    file: ./secrets/grafana_password.txt
