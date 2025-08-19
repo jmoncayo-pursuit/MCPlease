@@ -240,7 +240,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test-integration, test-security, test-docker]
     if: github.ref == 'refs/heads/develop'
-    environment: staging
     
     steps:
     - uses: actions/checkout@v4
@@ -272,7 +271,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test-integration, test-security, test-docker]
     if: github.event_name == 'release'
-    environment: production
     
     steps:
     - uses: actions/checkout@v4
@@ -287,7 +285,17 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     
+    - name: Check Docker Hub credentials
+      id: dockerhub-check
+      run: |
+        if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+          echo "available=true" >> $GITHUB_OUTPUT
+        else
+          echo "available=false" >> $GITHUB_OUTPUT
+        fi
+    
     - name: Login to Docker Hub
+      if: steps.dockerhub-check.outputs.available == 'true'
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -297,7 +305,7 @@ jobs:
       id: version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
     
-    - name: Build and push production image
+    - name: Build and push production image (GitHub Registry)
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -306,6 +314,17 @@ jobs:
         tags: |
           ghcr.io/${{ github.repository }}:latest
           ghcr.io/${{ github.repository }}:${{ steps.version.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push production image (Docker Hub)
+      if: steps.dockerhub-check.outputs.available == 'true'
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: |
           mcplease/mcp-server:latest
           mcplease/mcp-server:${{ steps.version.outputs.VERSION }}
         cache-from: type=gha
